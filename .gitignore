@@ -1,0 +1,16 @@
+.env
+node_modules/
+/vendor/
+.phpunit.cache/
+/storage/private/*
+/storage/logs/*
+/public/assets/*
+!/public/assets/.gitkeep
+!/public/assets/css/
+!/public/assets/css/*
+!/storage/private/.gitkeep
+!/storage/private/documents/
+!/storage/private/documents/.gitkeep
+!/storage/private/uploads/
+!/storage/private/uploads/.gitkeep
+!/storage/logs/.gitkeep

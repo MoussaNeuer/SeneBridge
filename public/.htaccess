@@ -1,0 +1,22 @@
+# SeneBridge — Front controller (point d'entrée unique)
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteOptions InheritDown
+
+    # Autoriser les fichiers/dossiers réels (assets, etc.)
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^ index.php [L]
+</IfModule>
+
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "DENY"
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+# Jamais divulguer la version PHP
+<IfModule mod_php.c>
+    php_flag display_errors Off
+</IfModule>

@@ -1,0 +1,32 @@
+@import "tailwindcss";
+
+@theme {
+    /* SeneBridge design system */
+    --color-brand: #005B4F;
+    --color-brand-foreground: #F8F7F2;
+    --color-brand-dark: #00463D;
+    --color-emerald-brand: #087F6A;
+    --color-gold: #D8A84E;
+    --color-gold-light: #E7C27D;
+    --color-cream: #F8F7F2;
+    --color-ink: #17221F;
+
+    --font-sans: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    background-color: var(--color-cream);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+}
+
+/* Focus visible obligatoire (accessibilité) */
+:focus-visible {
+    outline: 3px solid var(--color-gold);
+    outline-offset: 2px;
+}
