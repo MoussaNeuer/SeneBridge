@@ -133,17 +133,23 @@ final class ProjectController extends Controller
         $detail['steps_count'] = (int) ($detail['steps_count'] ?? 0);
         $detail['steps_completed'] = (int) ($detail['steps_completed'] ?? 0);
 
+        $documents = \App\Models\Document::where(['project_id' => (int) $project['id']], [['created_at', 'DESC']]);
+        $media = \App\Models\Media::where(['project_id' => (int) $project['id']], [['created_at', 'DESC']]);
+
         return Response::view('admin/projects/show', [
             'user' => $user,
             'project' => $detail,
             'steps' => $this->projects->steps((int) $project['id']),
             'properties' => $this->projects->properties((int) $project['id']),
+            'documents' => $documents,
+            'media' => $media,
             'history' => $this->projects->recentActivity((int) $project['id'], 20),
             'progress' => WorkflowService::progress($detail),
             'currentStep' => $this->projects->currentStep((int) $project['id']),
             'counselors' => $this->users->listCounselors(),
             'canManage' => ProjectPolicy::manage($user, $project),
             'canSteps' => ProjectPolicy::updateSteps($user, $project),
+            'canUpload' => $user && ProjectPolicy::view($user, $project),
         ]);
     }
 

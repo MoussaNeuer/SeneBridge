@@ -6,7 +6,15 @@ $this->section('title'); ?>Notifications<?php $this->endSection();
 $this->section('content');
 ?>
 
-<h1 class="text-2xl font-extrabold mb-6">Notifications</h1>
+<div class="flex flex-wrap items-end justify-between gap-4 mb-6">
+    <h1 class="text-2xl font-extrabold">Notifications</h1>
+    <?php if ($hasUnread): ?>
+    <form method="POST" action="<?= e(Router::url('client.notifications.read_all')) ?>">
+        <?= CSRF::field() ?>
+        <button type="submit" class="px-4 py-2 rounded-lg border border-brand/15 text-sm hover:bg-cream transition">Tout marquer comme lu</button>
+    </form>
+    <?php endif; ?>
+</div>
 
 <?php if ($notifications === []): ?>
     <div class="bg-white rounded-2xl border border-brand/10 p-10 text-center">

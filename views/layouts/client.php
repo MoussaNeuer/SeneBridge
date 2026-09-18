@@ -10,6 +10,9 @@ $currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?? '/';
 $_nav = [
     ['label' => 'Tableau de bord', 'route' => 'dashboard'],
     ['label' => 'Mes projets', 'route' => 'client.projects'],
+    ['label' => 'Mes factures', 'route' => 'client.invoices'],
+    ['label' => 'Rendez-vous', 'route' => 'client.appointments'],
+    ['label' => 'Messagerie', 'route' => 'client.messages'],
     ['label' => 'Notifications', 'route' => 'client.notifications'],
     ['label' => 'Mon profil', 'route' => 'client.profile'],
 ];

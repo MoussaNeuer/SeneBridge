@@ -152,6 +152,141 @@ $pct = (int) $progress;
 </div>
 
 <div class="grid gap-6 lg:grid-cols-2 mt-6">
+    <div class="bg-white rounded-2xl border border-brand/10 p-5">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="font-bold text-lg">Documents (<?= count($documents) ?>)</h2>
+            <span class="text-xs text-ink/50">brouillon · final · archive</span>
+        </div>
+
+        <form method="POST" action="<?= e(route('admin.projects.documents.store', ['publicId' => $project['public_id']])) ?>"
+              enctype="multipart/form-data" class="grid sm:grid-cols-2 gap-3 text-sm">
+            <?= CSRF::field() ?>
+            <input type="file" name="files[]" multiple required
+                   class="sm:col-span-2 px-3 py-2 rounded-lg border border-brand/15 text-sm">
+            <select name="category" class="px-3 py-2 rounded-lg border border-brand/15">
+                <?php foreach (\App\Models\Document::CATEGORIES as $cat): ?>
+                <option value="<?= e($cat) ?>"><?= e(ucfirst(str_replace('_', ' ', $cat))) ?></option>
+                <?php endforeach; ?>
+            </select>
+            <select name="visibility" class="px-3 py-2 rounded-lg border border-brand/15">
+                <option value="private">Visible : équipe</option>
+                <option value="client">Visible : client</option>
+                <option value="admin">Visible : admins</option>
+            </select>
+            <button type="submit" class="px-4 py-2 rounded-lg bg-brand text-brand-foreground font-semibold hover:bg-brand-dark transition">Téléverser</button>
+        </form>
+
+        <?php if ($documents === []): ?>
+            <p class="text-sm text-ink/60 mt-4">Aucun document. Téléversez vos premiers fichiers ci-dessus (fichiers ajoutés en « brouillon », non visibles par le client).</p>
+        <?php else: ?>
+        <ul class="divide-y divide-brand/5 mt-4 max-h-80 overflow-y-auto">
+            <?php foreach ($documents as $document): ?>
+            <li class="py-3 flex items-center justify-between gap-3">
+                <div class="min-w-0">
+                    <p class="text-sm font-medium truncate"><?= e($document['original_name']) ?></p>
+                    <p class="text-[11px] text-ink/50 mt-0.5">
+                        <?= e(ucfirst(str_replace('_', ' ', $document['category']))) ?> · <?= number_format((float) $document['size'] / 1024, 0, '.', ' ') ?> Ko
+                        · <?= e(date('d/m/Y H:i', strtotime($document['created_at']))) ?>
+                    </p>
+                    <p class="text-[11px] mt-1">
+                        <span class="px-1.5 py-0.5 rounded-full text-[10px] font-semibold <?= $document['status'] === 'final' ? ($document['visibility'] === 'client' ? 'bg-emerald-50 text-emerald-brand' : 'bg-brand/10 text-brand') : 'bg-gray-100 text-ink/60' ?>">
+                            <?= $document['status'] === 'brouillon' ? 'Brouillon' : ($document['status'] === 'final' ? 'Final · ' . (['client' => 'client', 'private' => 'équipe', 'admin' => 'admins'][$document['visibility']] ?? $document['visibility']) : 'Archivé') ?>
+                        </span>
+                    </p>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                    <a href="<?= e(route('admin.projects.documents.download', ['publicId' => $project['public_id'], 'documentPublicId' => $document['public_id']])) ?>"
+                       class="text-xs text-brand hover:underline">Télécharger ↓</a>
+                    <?php if ($canSteps): ?>
+                        <?php if ($document['status'] !== 'final'): ?>
+                        <form method="POST" action="<?= e(route('admin.projects.documents.status', ['publicId' => $project['public_id'], 'documentPublicId' => $document['public_id']])) ?>">
+                            <?= CSRF::field() ?>
+                            <input type="hidden" name="status" value="final">
+                            <button type="submit" class="text-xs text-emerald-brand hover:underline">Finaliser</button>
+                        </form>
+                        <?php endif; ?>
+                        <?php if ($document['status'] === 'final'): ?>
+                        <form method="POST" action="<?= e(route('admin.projects.documents.status', ['publicId' => $project['public_id'], 'documentPublicId' => $document['public_id']])) ?>">
+                            <?= CSRF::field() ?>
+                            <input type="hidden" name="status" value="archive">
+                            <button type="submit" class="text-xs text-ink/50 hover:underline">Archiver</button>
+                        </form>
+                        <?php endif; ?>
+                    <?php endif; ?>
+                </div>
+            </li>
+            <?php endforeach; ?>
+        </ul>
+        <?php endif; ?>
+    </div>
+
+    <div class="bg-white rounded-2xl border border-brand/10 p-5">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="font-bold text-lg">Médias (<?= count($media) ?>)</h2>
+            <span class="text-xs text-ink/50">photos · plans</span>
+        </div>
+
+        <form method="POST" action="<?= e(route('admin.projects.media.store', ['publicId' => $project['public_id']])) ?>"
+              enctype="multipart/form-data" class="grid sm:grid-cols-2 gap-3 text-sm">
+            <?= CSRF::field() ?>
+            <input type="file" name="files[]" multiple accept="image/*" required
+                   class="sm:col-span-2 px-3 py-2 rounded-lg border border-brand/15 text-sm">
+            <label class="px-3 py-2 rounded-lg border border-brand/15 text-ink/60">
+                Alt <input type="text" name="alt_text" placeholder="Description image" class="w-full outline-none text-ink">
+            </label>
+            <select name="visibility" class="px-3 py-2 rounded-lg border border-brand/15">
+                <option value="private">Visible : équipe</option>
+                <option value="client">Visible : client</option>
+                <option value="admin">Visible : admins</option>
+            </select>
+            <button type="submit" class="px-4 py-2 rounded-lg bg-brand text-brand-foreground font-semibold hover:bg-brand-dark transition">Téléverser</button>
+        </form>
+
+        <?php if ($media === []): ?>
+            <p class="text-sm text-ink/60 mt-4">Aucune photo. Partagez des images du dossier (chantier, plans, maquettes…).</p>
+        <?php else: ?>
+        <ul class="divide-y divide-brand/5 mt-4 max-h-80 overflow-y-auto">
+            <?php foreach ($media as $item): ?>
+            <li class="py-3 flex items-center justify-between gap-3">
+                <div class="min-w-0">
+                    <p class="text-sm font-medium truncate"><?= e($item['original_name']) ?></p>
+                    <p class="text-[11px] text-ink/50 mt-0.5">
+                        <?= number_format((float) $item['size'] / 1024, 0, '.', ' ') ?> Ko
+                        · <?= e(date('d/m/Y H:i', strtotime($item['created_at']))) ?>
+                    </p>
+                    <p class="text-[11px] mt-1">
+                        <span class="px-1.5 py-0.5 rounded-full text-[10px] font-semibold <?= $item['visibility'] === 'client' ? 'bg-emerald-50 text-emerald-brand' : 'bg-gray-100 text-ink/60' ?>">
+                            <?= $item['visibility'] === 'client' ? 'Visible client' : ($item['visibility'] === 'private' ? 'Équipe' : 'Admins') ?>
+                        </span>
+                    </p>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                    <a href="<?= e(route('admin.projects.media.download', ['publicId' => $project['public_id'], 'mediaPublicId' => $item['public_id']])) ?>"
+                       class="text-xs text-brand hover:underline">Télécharger ↓</a>
+                    <?php if ($canSteps): ?>
+                        <?php if ($item['visibility'] !== 'client'): ?>
+                        <form method="POST" action="<?= e(route('admin.projects.media.visibility', ['publicId' => $project['public_id'], 'mediaPublicId' => $item['public_id']])) ?>">
+                            <?= CSRF::field() ?>
+                            <input type="hidden" name="visibility" value="client">
+                            <button type="submit" class="text-xs text-emerald-brand hover:underline">Publier client</button>
+                        </form>
+                        <?php else: ?>
+                        <form method="POST" action="<?= e(route('admin.projects.media.visibility', ['publicId' => $project['public_id'], 'mediaPublicId' => $item['public_id']])) ?>">
+                            <?= CSRF::field() ?>
+                            <input type="hidden" name="visibility" value="private">
+                            <button type="submit" class="text-xs text-ink/50 hover:underline">Retirer</button>
+                        </form>
+                        <?php endif; ?>
+                    <?php endif; ?>
+                </div>
+            </li>
+            <?php endforeach; ?>
+        </ul>
+        <?php endif; ?>
+    </div>
+</div>
+
+<div class="grid gap-6 lg:grid-cols-2 mt-6">
     <?php if ($properties !== []): ?>
     <div class="bg-white rounded-2xl border border-brand/10 p-5">
         <h2 class="font-bold mb-3">Biens associés (<?= count($properties) ?>)</h2>

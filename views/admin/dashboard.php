@@ -40,6 +40,32 @@ $this->section('content');
     </div>
 </div>
 
+<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+    <div class="bg-white rounded-2xl border border-brand/10 p-5">
+        <p class="text-sm text-ink/60">Factures à recouvrer</p>
+        <p class="text-3xl font-extrabold <?= ($invoiceStats['a_recouvrer'] ?? 0) > 0 ? 'text-gold' : 'text-brand' ?> mt-1">
+            <?= (int) ($invoiceStats['a_recouvrer'] ?? 0) ?></p>
+        <a href="<?= e(Router::url('admin.invoices')) ?>" class="text-xs text-brand hover:underline">Voir les factures →</a>
+    </div>
+    <div class="bg-white rounded-2xl border border-brand/10 p-5">
+        <p class="text-sm text-ink/60">Paiements à valider</p>
+        <p class="text-3xl font-extrabold <?= ($paymentStats['en_cours'] ?? 0) > 0 ? 'text-gold' : 'text-brand' ?> mt-1">
+            <?= (int) ($paymentStats['en_cours'] ?? 0) ?></p>
+        <a href="<?= e(Router::url('admin.payments')) ?>" class="text-xs text-brand hover:underline">Valider les paiements →</a>
+    </div>
+    <div class="bg-white rounded-2xl border border-brand/10 p-5">
+        <p class="text-sm text-ink/60">Rendez-vous à confirmer</p>
+        <p class="text-3xl font-extrabold <?= ($appointmentStats['demande'] ?? 0) > 0 ? 'text-gold' : 'text-brand' ?> mt-1">
+            <?= (int) ($appointmentStats['demande'] ?? 0) ?></p>
+        <a href="<?= e(Router::url('admin.appointments')) ?>" class="text-xs text-brand hover:underline">Gérer les rendez-vous →</a>
+    </div>
+    <div class="bg-white rounded-2xl border border-brand/10 p-5">
+        <p class="text-sm text-ink/60">Conversations non lues</p>
+        <p class="text-3xl font-extrabold <?= (int) $unreadThreads > 0 ? 'text-gold' : 'text-brand' ?> mt-1"><?= (int) $unreadThreads ?></p>
+        <a href="<?= e(Router::url('admin.messages')) ?>" class="text-xs text-brand hover:underline">Ouvrir la messagerie →</a>
+    </div>
+</div>
+
 <div class="grid gap-6 lg:grid-cols-3">
     <div class="lg:col-span-2 bg-white rounded-2xl border border-brand/10 overflow-hidden">
         <div class="px-5 py-4 border-b border-brand/10 flex items-center justify-between">

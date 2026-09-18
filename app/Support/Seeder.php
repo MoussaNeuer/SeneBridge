@@ -181,14 +181,10 @@ final class Seeder
                 'payments.view', 'payments.record', 'payments.validate',
             ]),
             'client' => $this->ids($ids, [
-                'projects.view',
-                'steps.view',
-                'documents.view', 'documents.download',
-                'media.view',
-                'invoices.view',
-                'payments.view',
-                'messages.view', 'messages.send',
-                'appointments.view', 'appointments.manage',
+                // L'espace client (tableau de bord, projets, factures, messagerie,
+                // rendez-vous) est protégé par authentification + vérifications de
+                // propriété (IDOR). Le rôle client ne détient aucune permission du
+                // back-office : il ne doit pas pouvoir atteindre les routes /admin/*.
                 'notifications.view',
             ]),
         ];

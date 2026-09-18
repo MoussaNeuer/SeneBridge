@@ -13,6 +13,7 @@ final class Response
     public const TYPE_JSON = 'json';
     public const TYPE_REDIRECT = 'redirect';
     public const TYPE_TEXT = 'text';
+    public const TYPE_FILE = 'file';
 
     public string $type = self::TYPE_HTML;
     public int $status = 200;
@@ -94,6 +95,28 @@ final class Response
         return $response;
     }
 
+    /**
+     * Diffusion d'un fichier privé (streaming depuis storage/ — jamais de chemin client).
+     */
+    public static function file(string $absolutePath, string $downloadName, string $mimeType, bool $download = true): self
+    {
+        $response = new self();
+        $response->type = self::TYPE_FILE;
+        $response->status = 200;
+        $response->content = $absolutePath;
+        $response->headers = [
+            'Content-Type' => $mimeType,
+            'Content-Length' => (string) filesize($absolutePath),
+            'Content-Disposition' => $download
+                ? 'attachment; filename*=UTF-8\'\'' . rawurlencode($downloadName)
+                : 'inline; filename*=UTF-8\'\'' . rawurlencode($downloadName),
+            'X-Content-Type-Options' => 'nosniff',
+            'Cache-Control' => 'private, no-store',
+        ];
+
+        return $response;
+    }
+
     public static function notFound(string $message = 'Ressource introuvable.'): self
     {
         return self::view('errors/404', ['message' => $message], 404);
@@ -124,7 +147,48 @@ final class Response
             return;
         }
 
+        if ($this->type === self::TYPE_FILE) {
+            $this->streamFile((string) $this->content);
+
+            return;
+        }
+
         echo $this->content;
+    }
+
+    /**
+     * Lit le fichier par blocs pour éviter de charger de gros volumes en mémoire.
+     */
+    private function streamFile(string $absolutePath): void
+    {
+        if (!is_file($absolutePath) || !is_readable($absolutePath)) {
+            http_response_code(404);
+
+            return;
+        }
+
+        $handle = fopen($absolutePath, 'rb');
+
+        if ($handle === false) {
+            http_response_code(500);
+
+            return;
+        }
+
+        try {
+            while (!feof($handle)) {
+                $chunk = fread($handle, 8192);
+                if ($chunk === false) {
+                    break;
+                }
+                echo $chunk;
+                flush();
+            }
+        } finally {
+            fclose($handle);
+        }
+
+        exit(0);
     }
 
     /**

@@ -21,6 +21,10 @@ $nav = [
     ['label' => 'Clients', 'route' => 'admin.clients', 'permission' => 'users.view'],
     ['label' => 'Conseillers', 'route' => 'admin.counselors', 'permission' => 'users.assign_counselor'],
     ['label' => 'Biens immobiliers', 'route' => 'admin.properties', 'permission' => 'properties.view'],
+    ['label' => 'Factures', 'route' => 'admin.invoices', 'permission' => 'invoices.view'],
+    ['label' => 'Paiements', 'route' => 'admin.payments', 'permission' => 'payments.view'],
+    ['label' => 'Messagerie', 'route' => 'admin.messages', 'permission' => 'messages.view'],
+    ['label' => 'Rendez-vous', 'route' => 'admin.appointments', 'permission' => 'appointments.view'],
     ['label' => 'Messages contact', 'route' => 'admin.contacts', 'permission' => 'contacts.view'],
     ['label' => 'Actualités', 'route' => 'admin.articles', 'permission' => 'articles.manage'],
 ];

@@ -18,6 +18,21 @@ $displayName = trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? '
     </a>
 </div>
 
+<div class="grid gap-3 sm:grid-cols-3 mb-8">
+    <a href="<?= e(Router::url('client.messages')) ?>" class="bg-white rounded-2xl border border-brand/10 p-4 flex items-center justify-between hover:border-brand/30 transition">
+        <span class="text-sm font-semibold">Messagerie</span>
+        <span class="text-xl">💬</span>
+    </a>
+    <a href="<?= e(Router::url('client.appointments')) ?>" class="bg-white rounded-2xl border border-brand/10 p-4 flex items-center justify-between hover:border-brand/30 transition">
+        <span class="text-sm font-semibold">Rendez-vous</span>
+        <span class="text-xl">📅</span>
+    </a>
+    <a href="<?= e(Router::url('client.invoices')) ?>" class="bg-white rounded-2xl border border-brand/10 p-4 flex items-center justify-between hover:border-brand/30 transition">
+        <span class="text-sm font-semibold">Mes factures</span>
+        <span class="text-xl">🧾</span>
+    </a>
+</div>
+
 <?php if ($projects === []): ?>
     <div class="bg-white rounded-2xl border border-brand/10 p-10 text-center">
         <p class="text-3xl">🚀</p>

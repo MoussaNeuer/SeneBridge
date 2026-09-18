@@ -136,6 +136,53 @@ $pct = (int) $progress;
     </div>
 </div>
 
+<?php if ($documents !== [] || $media !== []): ?>
+<div class="grid gap-6 lg:grid-cols-2 mt-6">
+    <?php if ($documents !== []): ?>
+    <div class="bg-white rounded-2xl border border-brand/10 p-5">
+        <h2 class="font-bold text-lg mb-3">Documents du dossier (<?= count($documents) ?>)</h2>
+        <ul class="divide-y divide-brand/5">
+            <?php foreach ($documents as $document): ?>
+            <li class="py-3 flex items-center justify-between gap-3">
+                <div class="min-w-0">
+                    <p class="text-sm font-medium truncate"><?= e($document['original_name']) ?></p>
+                    <p class="text-[11px] text-ink/50 mt-0.5">
+                        <?= e(ucfirst(str_replace('_', ' ', $document['category']))) ?> · <?= number_format((float) $document['size'] / 1024, 0, '.', ' ') ?> Ko
+                        · Publié le <?= e(date('d/m/Y', strtotime($document['created_at']))) ?>
+                    </p>
+                </div>
+                <a href="<?= e(Router::url('client.projects.documents.download', ['publicId' => $project['public_id'], 'documentPublicId' => $document['public_id']])) ?>"
+                   class="shrink-0 text-xs text-brand font-semibold hover:underline">Télécharger ↓</a>
+            </li>
+            <?php endforeach; ?>
+        </ul>
+    </div>
+    <?php endif; ?>
+
+    <?php if ($media !== []): ?>
+    <div class="bg-white rounded-2xl border border-brand/10 p-5">
+        <h2 class="font-bold text-lg mb-3">Photos du dossier (<?= count($media) ?>)</h2>
+        <ul class="divide-y divide-brand/5">
+            <?php foreach ($media as $item): ?>
+            <li class="py-3 flex items-center justify-between gap-3">
+                <div class="min-w-0">
+                    <p class="text-sm font-medium truncate"><?= e($item['original_name']) ?></p>
+                    <p class="text-[11px] text-ink/50 mt-0.5">
+                        <?= number_format((float) $item['size'] / 1024, 0, '.', ' ') ?> Ko
+                        · <?= e(date('d/m/Y', strtotime($item['created_at']))) ?>
+                        <?= $item['alt_text'] ? ' · ' . e($item['alt_text']) : '' ?>
+                    </p>
+                </div>
+                <a href="<?= e(Router::url('client.projects.media.download', ['publicId' => $project['public_id'], 'mediaPublicId' => $item['public_id']])) ?>"
+                   class="shrink-0 text-xs text-brand font-semibold hover:underline">Télécharger ↓</a>
+            </li>
+            <?php endforeach; ?>
+        </ul>
+    </div>
+    <?php endif; ?>
+</div>
+<?php endif; ?>
+
 <?php if ($history !== []): ?>
 <div class="bg-white rounded-2xl border border-brand/10 p-5 mt-6">
     <h2 class="font-bold text-lg mb-3">Activité récente</h2>

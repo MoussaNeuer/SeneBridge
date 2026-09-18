@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace App\Controllers\Admin;
 
 use App\Controllers\Controller;
+use App\Repositories\AppointmentRepository;
+use App\Repositories\InvoiceRepository;
+use App\Repositories\PaymentRepository;
 use App\Repositories\ProjectRequestRepository;
 use App\Repositories\ProjectRepository;
 use App\Models\ContactMessage;
@@ -42,6 +45,10 @@ final class DashboardController extends Controller
             'requestCounts' => $this->requests->statusCounts(),
             'newRequests' => $this->requests->countNew(),
             'unreadContacts' => ContactMessage::count(['is_read' => 0]),
+            'invoiceStats' => (new InvoiceRepository())->stats(),
+            'paymentStats' => (new PaymentRepository())->stats(),
+            'appointmentStats' => (new AppointmentRepository())->stats(),
+            'unreadThreads' => (new \App\Repositories\ConversationRepository())->unreadFor((int) $user['id']),
             'recent' => $recent,
         ]);
     }

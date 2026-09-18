@@ -25,6 +25,7 @@ final class Router
         'verified' => \App\Middlewares\EmailVerifiedMiddleware::class,
         'role' => \App\Middlewares\RoleMiddleware::class,
         'permission' => \App\Middlewares\PermissionMiddleware::class,
+        'staff' => \App\Middlewares\AdminAreaMiddleware::class,
     ];
 
     public static function get(string $path, mixed $action, ?string $name = null, array $middleware = []): void

@@ -2,18 +2,24 @@
 
 declare(strict_types=1);
 
+use App\Controllers\Admin\AppointmentController;
 use App\Controllers\Admin\ArticleController;
 use App\Controllers\Admin\ClientController;
 use App\Controllers\Admin\ContactController;
 use App\Controllers\Admin\CounselorController;
 use App\Controllers\Admin\DashboardController;
+use App\Controllers\Admin\DocumentController;
+use App\Controllers\Admin\InvoiceController;
+use App\Controllers\Admin\MediaController;
+use App\Controllers\Admin\MessageController;
+use App\Controllers\Admin\PaymentController;
 use App\Controllers\Admin\ProjectController;
 use App\Controllers\Admin\PropertyController;
 use App\Controllers\Admin\RequestController;
 use App\Support\Router;
 
 // ---- Back-office (personnel : admin, manager, conseillers) ------------------
-Router::group(['middleware' => ['auth']], function () {
+Router::group(['middleware' => ['auth', 'staff']], function () {
     // Tableau de bord
     Router::get('/admin', [DashboardController::class, 'index'], 'admin.dashboard', ['permission:admin.access']);
 
@@ -39,6 +45,44 @@ Router::group(['middleware' => ['auth']], function () {
 
     // Workflow : étapes d'un projet
     Router::post('/admin/projets/{publicId:[A-Za-z0-9\-]+}/etapes/mettre-a-jour', [ProjectController::class, 'stepTransition'], 'admin.projects.steps.transition', ['permission:steps.update', 'csrf']);
+
+    // Documents et médias d'un dossier
+    Router::post('/admin/projets/{publicId:[A-Za-z0-9\-]+}/documents', [DocumentController::class, 'store'], 'admin.projects.documents.store', ['permission:documents.upload', 'csrf']);
+    Router::post('/admin/projets/{publicId:[A-Za-z0-9\-]+}/documents/{documentPublicId:[A-Za-z0-9\-]+}/statut', [DocumentController::class, 'status'], 'admin.projects.documents.status', ['permission:documents.manage', 'csrf']);
+    Router::get('/admin/projets/{publicId:[A-Za-z0-9\-]+}/documents/{documentPublicId:[A-Za-z0-9\-]+}/telecharger', [DocumentController::class, 'download'], 'admin.projects.documents.download', ['permission:documents.view']);
+    Router::post('/admin/projets/{publicId:[A-Za-z0-9\-]+}/media', [MediaController::class, 'store'], 'admin.projects.media.store', ['permission:media.upload', 'csrf']);
+    Router::post('/admin/projets/{publicId:[A-Za-z0-9\-]+}/media/{mediaPublicId:[A-Za-z0-9\-]+}/visibilite', [MediaController::class, 'visibility'], 'admin.projects.media.visibility', ['permission:media.manage', 'csrf']);
+    Router::get('/admin/projets/{publicId:[A-Za-z0-9\-]+}/media/{mediaPublicId:[A-Za-z0-9\-]+}/telecharger', [MediaController::class, 'download'], 'admin.projects.media.download', ['permission:media.view']);
+
+    // Factures
+    Router::get('/admin/factures', [InvoiceController::class, 'index'], 'admin.invoices', ['permission:invoices.view']);
+    Router::get('/admin/factures/nouvelle', [InvoiceController::class, 'create'], 'admin.invoices.create', ['permission:invoices.manage']);
+    Router::post('/admin/factures', [InvoiceController::class, 'store'], 'admin.invoices.store', ['permission:invoices.manage', 'csrf']);
+    Router::get('/admin/factures/{publicId:[A-Za-z0-9\-]+}', [InvoiceController::class, 'show'], 'admin.invoices.show', ['permission:invoices.view']);
+    Router::post('/admin/factures/{publicId:[A-Za-z0-9\-]+}/envoyer', [InvoiceController::class, 'send'], 'admin.invoices.send', ['permission:invoices.manage', 'csrf']);
+    Router::post('/admin/factures/{publicId:[A-Za-z0-9\-]+}/annuler', [InvoiceController::class, 'cancel'], 'admin.invoices.cancel', ['permission:invoices.manage', 'csrf']);
+
+    // Paiements
+    Router::get('/admin/paiements', [PaymentController::class, 'index'], 'admin.payments', ['permission:payments.view']);
+    Router::get('/admin/paiements/nouveau', [PaymentController::class, 'create'], 'admin.payments.create', ['permission:payments.record']);
+    Router::post('/admin/paiements', [PaymentController::class, 'store'], 'admin.payments.store', ['permission:payments.record', 'csrf']);
+    Router::get('/admin/paiements/{publicId:[A-Za-z0-9\-]+}', [PaymentController::class, 'show'], 'admin.payments.show', ['permission:payments.view']);
+    Router::post('/admin/paiements/{publicId:[A-Za-z0-9\-]+}/valider', [PaymentController::class, 'validate'], 'admin.payments.validate', ['permission:payments.validate', 'csrf']);
+    Router::post('/admin/paiements/{publicId:[A-Za-z0-9\-]+}/rejeter', [PaymentController::class, 'reject'], 'admin.payments.reject', ['permission:payments.validate', 'csrf']);
+    Router::get('/admin/paiements/{publicId:[A-Za-z0-9\-]+}/recu', [PaymentController::class, 'receipt'], 'admin.payments.receipt', ['permission:payments.view']);
+
+    // Messagerie
+    Router::get('/admin/messages', [MessageController::class, 'index'], 'admin.messages', ['permission:messages.view']);
+    Router::get('/admin/messages/{publicId:[A-Za-z0-9\-]+}', [MessageController::class, 'show'], 'admin.messages.show', ['permission:messages.view']);
+    Router::post('/admin/messages/{publicId:[A-Za-z0-9\-]+}', [MessageController::class, 'store'], 'admin.messages.store', ['permission:messages.send', 'csrf']);
+    Router::post('/admin/messages/{publicId:[A-Za-z0-9\-]+}/fermer', [MessageController::class, 'close'], 'admin.messages.close', ['permission:messages.view', 'csrf']);
+
+    // Rendez-vous
+    Router::get('/admin/rendez-vous', [AppointmentController::class, 'index'], 'admin.appointments', ['permission:appointments.view']);
+    Router::get('/admin/rendez-vous/{publicId:[A-Za-z0-9\-]+}', [AppointmentController::class, 'show'], 'admin.appointments.show', ['permission:appointments.view']);
+    Router::post('/admin/rendez-vous/{publicId:[A-Za-z0-9\-]+}/confirmer', [AppointmentController::class, 'confirm'], 'admin.appointments.confirm', ['permission:appointments.manage', 'csrf']);
+    Router::post('/admin/rendez-vous/{publicId:[A-Za-z0-9\-]+}/annuler', [AppointmentController::class, 'cancel'], 'admin.appointments.cancel', ['permission:appointments.manage', 'csrf']);
+    Router::post('/admin/rendez-vous/{publicId:[A-Za-z0-9\-]+}/terminer', [AppointmentController::class, 'complete'], 'admin.appointments.complete', ['permission:appointments.manage', 'csrf']);
 
     // Biens immobiliers
     Router::get('/admin/biens', [PropertyController::class, 'index'], 'admin.properties', ['permission:properties.view']);
