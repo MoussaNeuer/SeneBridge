@@ -30,13 +30,21 @@ use App\Support\CSRF;
                 SeneBridge
             </a>
             <div class="hidden md:flex items-center gap-6 text-sm font-medium">
-                <a href="<?= e(app_url('/')) ?>#services" class="hover:text-gold">Nos services</a>
-                <a href="<?= e(app_url('/')) ?>#apropos" class="hover:text-gold">À propos</a>
-                <a href="<?= e(app_url('/')) ?>#contact" class="hover:text-gold">Contact</a>
+                <a href="<?= e(app_url('services')) ?>" class="hover:text-gold">Nos services</a>
+                <a href="<?= e(app_url('apropos')) ?>" class="hover:text-gold">À propos</a>
+                <a href="<?= e(app_url('actualites')) ?>" class="hover:text-gold">Actualités</a>
+                <a href="<?= e(app_url('contact')) ?>" class="hover:text-gold">Contact</a>
             </div>
             <div class="flex items-center gap-3">
-                <a href="<?= e(app_url('login')) ?>" class="px-4 py-2 rounded-lg border border-white/30 hover:bg-white/10 transition">Connexion</a>
-                <a href="<?= e(app_url('register')) ?>" class="px-4 py-2 rounded-lg bg-gold text-brand font-semibold hover:bg-gold-light transition">Démarrer</a>
+                <?php if (\App\Support\Gate::loggedIn()): ?>
+                    <a href="<?= e(app_url('dashboard')) ?>" class="px-4 py-2 rounded-lg border border-white/30 hover:bg-white/10 transition">Espace client</a>
+                    <a href="<?= e(app_url('contact')) ?>"
+                       class="hidden md:inline-block px-4 py-2 rounded-lg bg-gold text-brand font-semibold hover:bg-gold-light transition">Démarrer un projet</a>
+                <?php else: ?>
+                    <a href="<?= e(app_url('login')) ?>" class="px-4 py-2 rounded-lg border border-white/30 hover:bg-white/10 transition">Connexion</a>
+                    <a href="<?= e(app_url('demarrer-un-projet')) ?>"
+                       class="hidden md:inline-block px-4 py-2 rounded-lg bg-gold text-brand font-semibold hover:bg-gold-light transition">Démarrer un projet</a>
+                <?php endif; ?>
             </div>
         </nav>
     </header>

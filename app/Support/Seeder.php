@@ -56,6 +56,11 @@ final class Seeder
         ['name' => 'notifications.view', 'label' => 'Voir les notifications'],
         ['name' => 'audit.view', 'label' => 'Consulter le journal d\'audit'],
         ['name' => 'settings.manage', 'label' => 'Gérer les paramètres'],
+        ['name' => 'requests.view', 'label' => 'Voir les demandes de projet'],
+        ['name' => 'requests.manage', 'label' => 'Gérer les demandes de projet'],
+        ['name' => 'contacts.view', 'label' => 'Voir les messages de contact'],
+        ['name' => 'articles.manage', 'label' => 'Gérer les actualités'],
+        ['name' => 'admin.access', 'label' => 'Accéder au back-office'],
     ];
 
     /**
@@ -127,11 +132,15 @@ final class Seeder
         // Compte administrateur initial.
         $admin = $this->ensureAdminUser($roleIds[Role::ADMIN]);
 
+        // Articles d'actualité (démo, idempotent par slug).
+        $articlesCount = $this->ensureSampleArticles($admin);
+
         return [
             'roles' => $rolesCount,
             'permissions' => $permissionsCount,
             'mappings' => $mappingsCount,
             'admin' => $admin,
+            'articles' => $articlesCount,
         ];
     }
 
@@ -146,7 +155,7 @@ final class Seeder
         return [
             'admin' => $all,
             'manager' => $this->ids($ids, [
-                'users.view', 'users.assign_counselor',
+                'users.view', 'users.assign_counselor', 'admin.access',
                 'projects.view', 'projects.create', 'projects.update', 'projects.close', 'projects.archive',
                 'properties.view', 'properties.manage',
                 'steps.view', 'steps.update',
@@ -157,6 +166,7 @@ final class Seeder
                 'messages.view', 'messages.send',
                 'appointments.view', 'appointments.manage',
                 'notifications.view', 'audit.view',
+                'requests.view', 'requests.manage', 'contacts.view',
             ]),
             'counselor' => $this->ids($ids, [
                 'projects.view', 'steps.view', 'steps.update',
@@ -200,6 +210,57 @@ final class Seeder
         }
 
         return $result;
+    }
+
+    private function ensureSampleArticles(?string $adminPassword = null): int
+    {
+        $articles = [
+            [
+                'title' => 'SeneBridge, le pont entre la diaspora et le Sénégal',
+                'slug' => 'senebridge-le-pont-entre-la-diaspora-et-le-senegal',
+                'excerpt' => 'Notre plateforme centralise vos projets immobiliers, import/export et d\'investissement, avec un suivi transparent en temps réel.',
+                'body' => "La diaspora sénégalaise joue un rôle central dans l'économie nationale. SeneBridge simplifie la gestion de vos projets au pays : biens immobiliers, dossiers d'import/export, investissements, conciergerie.\n\nChaque dossier dispose d'une timeline claire, de documents sécurisés et d'un conseiller dédié.\n\nCréez votre compte et démarrez votre premier projet en quelques minutes.",
+            ],
+            [
+                'title' => 'Acheter un bien immobilier à distance : nos conseils',
+                'slug' => 'acheter-un-bien-immobilier-a-distance-nos-conseils',
+                'excerpt' => 'Recherche, vérification, visite et transaction : les étapes clés pour sécuriser un achat immobilier depuis l\'étranger.',
+                'body' => "Acquérir un bien depuis la diaspora demande rigueur et accompagnement.\n\n1. Vérifiez le titre de propriété et la situation juridique du terrain.\n2. Faites réaliser une visite indépendante.\n3. Prévoyez les frais d'enregistrement et de fiscalité.\n\nSeneBridge coordonne chaque étape avec des professionnels locaux.",
+            ],
+            [
+                'title' => 'Investir au Sénégal : opportunités et accompagnement',
+                'slug' => 'investir-au-senegal-opportunites-et-accompagnement',
+                'excerpt' => 'Immobilier, agriculture, énergie : les secteurs porteurs et la façon de s\'y engager en toute confiance.',
+                'body' => "Le Sénégal offre de nombreuses opportunités d'investissement.\n\nNotre équipe vous accompagne de l'étude de faisabilité jusqu'à la mise en place, avec une transparence totale sur les engagements financiers.\n\nContactez-nous pour un premier rendez-vous.",
+            ],
+        ];
+
+        $authorId = null;
+        $admin = Database::first("SELECT id FROM users WHERE email = 'admin@senebridge.sn' LIMIT 1");
+        if ($admin !== null) {
+            $authorId = (int) $admin['id'];
+        }
+
+        $created = 0;
+
+        foreach ($articles as $article) {
+            if (\App\Models\Article::findBySlug($article['slug']) !== null) {
+                continue;
+            }
+
+            \App\Models\Article::create([
+                'title' => $article['title'],
+                'slug' => $article['slug'],
+                'excerpt' => $article['excerpt'],
+                'body' => $article['body'],
+                'status' => 'publie',
+                'author_id' => $authorId,
+                'published_at' => date('Y-m-d H:i:s'),
+            ]);
+            $created++;
+        }
+
+        return $created;
     }
 
     private function ensureAdminUser(int $adminRoleId): ?string

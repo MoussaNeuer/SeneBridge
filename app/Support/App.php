@@ -208,6 +208,14 @@ final class App
         return (string) config('app.key', '');
     }
 
+    /**
+     * Raccourci d'autorisation (RBAC) sur l'utilisateur courant.
+     */
+    public static function can(string $permission): bool
+    {
+        return Gate::allows($permission);
+    }
+
     private static function registerErrorHandling(): void
     {
         if (self::isCli()) {

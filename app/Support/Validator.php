@@ -128,6 +128,52 @@ final class Validator
                 // Aucune exigence si vide.
                 break;
 
+            case 'in':
+                $allowed = array_map(static fn (string $v): string => trim($v), explode(',', $parameters));
+                if (!$this->isEmpty($value) && !in_array((string) $value, $allowed, true)) {
+                    $this->errors[$field] = 'La valeur du champ « ' . $label . ' » sélectionnée est invalide.';
+                }
+                break;
+
+            case 'numeric':
+                if (!$this->isEmpty($value) && !is_numeric($value)) {
+                    $this->errors[$field] = 'Le champ « ' . $label . ' » doit être un nombre.';
+                }
+                break;
+
+            case 'int':
+                if (!$this->isEmpty($value) && filter_var($value, FILTER_VALIDATE_INT) === false) {
+                    $this->errors[$field] = 'Le champ « ' . $label . ' » doit être un nombre entier.';
+                }
+                break;
+
+            case 'date':
+                if (!$this->isEmpty($value)) {
+                    $parsed = strtotime((string) $value);
+                    if ($parsed === false || date('Y-m-d', $parsed) !== (string) $value) {
+                        $this->errors[$field] = 'Le champ « ' . $label . ' » doit être une date valide.';
+                    }
+                }
+                break;
+
+            case 'boolean':
+                if (!$this->isEmpty($value) && !in_array($value, [true, false, 0, 1, '0', '1', 'on'], true)) {
+                    $this->errors[$field] = 'Le champ « ' . $label . ' » doit être une valeur oui/non.';
+                }
+                break;
+
+            case 'min_value':
+                if (!$this->isEmpty($value) && is_numeric($value) && (float) $value < (float) $parameters) {
+                    $this->errors[$field] = 'Le champ « ' . $label . ' » doit être supérieur ou égal à ' . $parameters . '.';
+                }
+                break;
+
+            case 'max_value':
+                if (!$this->isEmpty($value) && is_numeric($value) && (float) $value > (float) $parameters) {
+                    $this->errors[$field] = 'Le champ « ' . $label . ' » ne peut pas dépasser ' . $parameters . '.';
+                }
+                break;
+
             default:
                 throw new \LogicException(sprintf('Règle de validation inconnue : %s', $rule));
         }

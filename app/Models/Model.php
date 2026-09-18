@@ -95,7 +95,12 @@ abstract class Model
     public static function where(array $conditions, array $orderBy = [], ?int $limit = null, ?int $offset = null): array
     {
         $params = [];
-        $sql = 'SELECT * FROM `' . static::table() . '` WHERE ' . self::buildWhere($conditions, $params);
+        $sql = 'SELECT * FROM `' . static::table() . '`';
+
+        if ($conditions !== []) {
+            $sql .= ' WHERE ' . self::buildWhere($conditions, $params);
+        }
+
         $sql .= self::buildOrderBy($orderBy);
 
         if ($limit !== null) {

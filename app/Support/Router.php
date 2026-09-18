@@ -24,6 +24,7 @@ final class Router
         'csrf' => \App\Middlewares\CsrfMiddleware::class,
         'verified' => \App\Middlewares\EmailVerifiedMiddleware::class,
         'role' => \App\Middlewares\RoleMiddleware::class,
+        'permission' => \App\Middlewares\PermissionMiddleware::class,
     ];
 
     public static function get(string $path, mixed $action, ?string $name = null, array $middleware = []): void
@@ -189,7 +190,10 @@ final class Router
     private static function runMiddleware(array $middleware, Request $request): void
     {
         foreach ($middleware as $alias) {
-            $resolved = self::$middlewareAliases[$alias] ?? $alias;
+            // Les middlewares paramétrés utilisent la syntaxe « alias:valeur »
+            // (ex. permission:projects.create, role:admin).
+            [$aliasName, $parameter] = array_pad(explode(':', $alias, 2), 2, null);
+            $resolved = self::$middlewareAliases[$aliasName] ?? $aliasName;
 
             if (!class_exists($resolved)) {
                 throw new \RuntimeException(sprintf('Middleware introuvable : %s', $alias));
@@ -198,7 +202,7 @@ final class Router
             $instance = new $resolved();
 
             if ($instance instanceof MiddlewareContract) {
-                $result = $instance->handle($request, fn () => null);
+                $result = $instance->handle($request, fn () => null, $parameter);
                 if ($result instanceof Response) {
                     $result->send();
                     exit;
