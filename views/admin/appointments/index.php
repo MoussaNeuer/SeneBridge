@@ -13,6 +13,7 @@ $filters = ['status' => (string) ($filters['status'] ?? '')];
         <h1 class="text-2xl font-extrabold">Rendez-vous</h1>
         <p class="text-sm text-ink/60 mt-1">Demandes des clients et suivi des entretiens.</p>
     </div>
+    <a href="<?= e(Router::url('admin.appointments.agenda')) ?>" class="px-4 py-2 rounded-lg border border-brand/15 text-sm font-semibold hover:bg-cream transition">Vue semaine →</a>
 </div>
 
 <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
@@ -49,7 +50,7 @@ $filters = ['status' => (string) ($filters['status'] ?? '')];
     <?php if ($pagination['items'] === []): ?>
         <p class="px-5 py-10 text-center text-sm text-ink/60">Aucun rendez-vous trouvé.</p>
     <?php else: ?>
-    <table class="w-full text-sm">
+    <table class="w-full text-sm" data-table data-title="rendez-vous">
         <thead class="text-left text-xs text-ink/50 uppercase border-b border-brand/10">
             <tr>
                 <th class="px-5 py-3">Date</th>

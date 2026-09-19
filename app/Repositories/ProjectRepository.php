@@ -167,4 +167,38 @@ final class ProjectRepository
             'archive' => Project::count(['status' => 'archive']),
         ];
     }
+
+    /**
+     * Dossiers groupés par statut pour le pipeline (Kanban).
+     *
+     * @return array<string, array<int, array<string, mixed>>>
+     */
+    public function forKanban(int $limitPerColumn = 40): array
+    {
+        $rows = Database::select(
+            'SELECT p.*,
+                    c.first_name AS client_first_name, c.last_name AS client_last_name,
+                    co.first_name AS counselor_first_name, co.last_name AS counselor_last_name,
+                    (SELECT COUNT(*) FROM project_steps s WHERE s.project_id = p.id) AS steps_count,
+                    (SELECT COUNT(*) FROM project_steps s WHERE s.project_id = p.id AND s.status = \'termine\') AS steps_completed
+             FROM projects p
+             LEFT JOIN users c ON c.id = p.client_id
+             LEFT JOIN users co ON co.id = p.counselor_id
+             WHERE p.status NOT IN (\'archive\')
+             ORDER BY p.updated_at DESC
+             LIMIT ?',
+            [$limitPerColumn * 4]
+        );
+
+        $boards = ['en_cours' => [], 'bloque' => [], 'termine' => []];
+
+        foreach ($rows as $row) {
+            $status = (string) $row['status'];
+            if (isset($boards[$status])) {
+                $boards[$status][] = $row;
+            }
+        }
+
+        return $boards;
+    }
 }

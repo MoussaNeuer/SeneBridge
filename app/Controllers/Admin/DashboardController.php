@@ -51,9 +51,62 @@ final class DashboardController extends Controller
             'recent' => $recent,
             'finance' => $this->financeKpis(),
             'monthlyRevenue' => $this->monthlyRevenue(12),
+            'monthlyPayments' => $this->monthlyPayments(6),
             'recentPayments' => $this->recentPayments(6),
             'upcomingAppointments' => $this->upcomingAppointments(6),
+            'topCounselors' => $this->topCounselors(5),
         ]);
+    }
+
+    /**
+     * Top conseillers par nombre de dossiers actifs.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function topCounselors(int $limit = 5): array
+    {
+        return Database::select(
+            "SELECT u.id, u.first_name, u.last_name, u.email,
+                    COUNT(p.id) AS projects_count,
+                    SUM(CASE WHEN p.status = 'en_cours' THEN 1 ELSE 0 END) AS active_count
+             FROM users u
+             INNER JOIN roles r ON r.id = u.role_id AND r.name = 'counselor'
+             LEFT JOIN projects p ON p.counselor_id = u.id AND p.status IN ('en_cours', 'bloque')
+             GROUP BY u.id, u.first_name, u.last_name, u.email
+             ORDER BY active_count DESC, projects_count DESC
+             LIMIT ?",
+            [$limit]
+        );
+    }
+
+    /**
+     * Nombre de paiements validés par mois (mini-graphique).
+     *
+     * @return array<int, int>
+     */
+    private function monthlyPayments(int $months = 6): array
+    {
+        $start = date('Y-m-01', strtotime('-' . ($months - 1) . ' months'));
+        $rows = Database::select(
+            "SELECT DATE_FORMAT(payment_date, '%Y-%m') AS month, COUNT(*) AS n
+             FROM payments
+             WHERE status = 'valide' AND payment_date >= ?
+             GROUP BY DATE_FORMAT(payment_date, '%Y-%m')",
+            [$start]
+        );
+        $map = [];
+        foreach ($rows as $row) {
+            $map[(string) $row['month']] = (int) $row['n'];
+        }
+
+        $series = [];
+        $now = new \DateTimeImmutable(date('Y-m-01'));
+        for ($i = $months - 1; $i >= 0; $i--) {
+            $key = $now->modify('-' . $i . ' months')->format('Y-m');
+            $series[] = (int) ($map[$key] ?? 0);
+        }
+
+        return $series;
     }
 
     /**

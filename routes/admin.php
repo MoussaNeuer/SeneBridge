@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Controllers\Admin\AppointmentController;
 use App\Controllers\Admin\ArticleController;
+use App\Controllers\Admin\AuditController;
 use App\Controllers\Admin\ClientController;
 use App\Controllers\Admin\ContactController;
 use App\Controllers\Admin\CounselorController;
@@ -17,12 +18,15 @@ use App\Controllers\Admin\ProjectController;
 use App\Controllers\Admin\PropertyController;
 use App\Controllers\Admin\RequestController;
 use App\Controllers\Admin\RoleController;
+use App\Controllers\Admin\SystemController;
+use App\Controllers\Admin\UtilityController;
 use App\Support\Router;
 
 // ---- Back-office (personnel : admin, manager, conseillers) ------------------
 Router::group(['middleware' => ['auth', 'staff']], function () {
     // Tableau de bord
     Router::get('/admin', [DashboardController::class, 'index'], 'admin.dashboard', ['permission:admin.access']);
+    Router::get('/admin/api/compteurs', [UtilityController::class, 'counters'], 'admin.api.counters');
 
     // Clients (comptes)
     Router::get('/admin/clients', [ClientController::class, 'index'], 'admin.clients', ['permission:users.view']);
@@ -36,6 +40,7 @@ Router::group(['middleware' => ['auth', 'staff']], function () {
 
     // Projets (dossiers)
     Router::get('/admin/projets', [ProjectController::class, 'index'], 'admin.projects', ['permission:projects.view']);
+    Router::get('/admin/projets/kanban', [ProjectController::class, 'kanban'], 'admin.projects.kanban', ['permission:projects.view']);
     Router::get('/admin/projets/nouveau', [ProjectController::class, 'create'], 'admin.projects.create', ['permission:projects.create']);
     Router::post('/admin/projets', [ProjectController::class, 'store'], 'admin.projects.store', ['permission:projects.create', 'csrf']);
     Router::get('/admin/projets/{publicId:[A-Za-z0-9\-]+}', [ProjectController::class, 'show'], 'admin.projects.show', ['permission:projects.view']);
@@ -80,6 +85,7 @@ Router::group(['middleware' => ['auth', 'staff']], function () {
 
     // Rendez-vous
     Router::get('/admin/rendez-vous', [AppointmentController::class, 'index'], 'admin.appointments', ['permission:appointments.view']);
+    Router::get('/admin/rendez-vous/agenda', [AppointmentController::class, 'agenda'], 'admin.appointments.agenda', ['permission:appointments.view']);
     Router::get('/admin/rendez-vous/{publicId:[A-Za-z0-9\-]+}', [AppointmentController::class, 'show'], 'admin.appointments.show', ['permission:appointments.view']);
     Router::post('/admin/rendez-vous/{publicId:[A-Za-z0-9\-]+}/confirmer', [AppointmentController::class, 'confirm'], 'admin.appointments.confirm', ['permission:appointments.manage', 'csrf']);
     Router::post('/admin/rendez-vous/{publicId:[A-Za-z0-9\-]+}/annuler', [AppointmentController::class, 'cancel'], 'admin.appointments.cancel', ['permission:appointments.manage', 'csrf']);
@@ -120,4 +126,10 @@ Router::group(['middleware' => ['auth', 'staff']], function () {
     Router::get('/admin/articles/{publicId:[A-Za-z0-9\-]+}/modifier', [ArticleController::class, 'edit'], 'admin.articles.edit', ['permission:articles.manage']);
     Router::post('/admin/articles/{publicId:[A-Za-z0-9\-]+}/modifier', [ArticleController::class, 'update'], 'admin.articles.update', ['permission:articles.manage', 'csrf']);
     Router::post('/admin/articles/{publicId:[A-Za-z0-9\-]+}/statut', [ArticleController::class, 'toggle'], 'admin.articles.toggle', ['permission:articles.manage', 'csrf']);
+
+    // Journal d'audit
+    Router::get('/admin/journal', [AuditController::class, 'index'], 'admin.audit', ['permission:audit.view']);
+
+    // Informations système
+    Router::get('/admin/systeme', [SystemController::class, 'index'], 'admin.system', ['permission:admin.access']);
 });

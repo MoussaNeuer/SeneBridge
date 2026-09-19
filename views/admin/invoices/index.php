@@ -51,7 +51,7 @@ $filters = ['status' => (string) ($filters['status'] ?? '')];
     <?php if ($pagination['items'] === []): ?>
         <p class="px-5 py-10 text-center text-sm text-ink/60">Aucune facture trouvée.</p>
     <?php else: ?>
-    <table class="w-full text-sm">
+    <table class="w-full text-sm" data-table data-title="factures">
         <thead class="text-left text-xs text-ink/50 uppercase border-b border-brand/10">
             <tr>
                 <th class="px-5 py-3">N°</th>

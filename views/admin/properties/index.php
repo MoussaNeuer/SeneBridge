@@ -29,7 +29,7 @@ $statuses = ['disponible', 'sous_offre', 'reserve', 'vendu', 'loue', 'archive'];
 </form>
 
 <div class="bg-white rounded-2xl border border-brand/10 overflow-x-auto">
-    <table class="w-full text-sm min-w-[720px]">
+    <table class="w-full text-sm min-w-[720px]" data-table data-title="biens">
         <thead class="text-left text-xs text-ink/50 uppercase border-b border-brand/10">
             <tr>
                 <th class="px-5 py-3">Bien</th>

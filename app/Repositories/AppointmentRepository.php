@@ -119,6 +119,37 @@ final class AppointmentRepository
     }
 
     /**
+     * Rendez-vous d'une période (agenda hebdomadaire), scopé par conseiller.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function forPeriod(string $start, string $end, ?array $user = null): array
+    {
+        $where = ['a.requested_date BETWEEN ? AND ?'];
+        $params = [$start, $end];
+
+        if ($user !== null && \App\Support\Gate::roleName($user) === 'counselor') {
+            $where[] = 'a.counselor_id = ?';
+            $params[] = (int) $user['id'];
+        }
+
+        return Database::select(
+            'SELECT a.*,
+                    cl.first_name AS client_first_name, cl.last_name AS client_last_name,
+                    cl.email AS client_email, cl.phone AS client_phone,
+                    co.first_name AS counselor_first_name, co.last_name AS counselor_last_name,
+                    p.reference AS project_reference, p.name AS project_name
+             FROM appointments a
+             LEFT JOIN users cl ON cl.id = a.client_id
+             LEFT JOIN users co ON co.id = a.counselor_id
+             LEFT JOIN projects p ON p.id = a.project_id
+             WHERE ' . implode(' AND ', $where) . '
+             ORDER BY a.requested_date ASC, a.requested_time ASC',
+            $params
+        );
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public function stats(): array

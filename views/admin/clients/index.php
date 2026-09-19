@@ -23,7 +23,7 @@ $this->section('content');
 </form>
 
 <div class="bg-white rounded-2xl border border-brand/10 overflow-x-auto">
-    <table class="w-full text-sm min-w-[720px]">
+    <table class="w-full text-sm min-w-[720px]" data-table data-title="clients">
         <thead class="text-left text-xs text-ink/50 uppercase border-b border-brand/10">
             <tr>
                 <th class="px-5 py-3">Nom</th>

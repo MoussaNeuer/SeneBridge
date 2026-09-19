@@ -37,6 +37,50 @@ final class AppointmentController extends Controller
         ]);
     }
 
+    public function agenda(): Response
+    {
+        $user = App::user();
+
+        $monday = $this->request->query('semaine', '');
+        if ($monday === '' || !preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $monday)) {
+            $monday = date('Y-m-d', strtotime('monday this week'));
+        } else {
+            $monday = (string) $monday;
+        }
+
+        $start = date('Y-m-d', strtotime($monday));
+        $end = date('Y-m-d', strtotime($monday . ' +6 days'));
+
+        $rows = $this->appointments->forPeriod($start, $end, $user);
+        $week = [];
+        $dayNames = ['Lun.', 'Mar.', 'Mer.', 'Jeu.', 'Ven.', 'Sam.', 'Dim.'];
+
+        foreach (range(0, 6) as $i) {
+            $day = date('Y-m-d', strtotime($start . ' +' . $i . ' days'));
+            $week[$day] = [
+                'label' => $dayNames[$i] . ' ' . date('d/m', strtotime($day)),
+                'is_today' => $day === date('Y-m-d'),
+                'items' => [],
+            ];
+        }
+
+        foreach ($rows as $row) {
+            $day = (string) $row['requested_date'];
+            if (isset($week[$day])) {
+                $week[$day]['items'][] = $row;
+            }
+        }
+
+        return Response::view('admin/appointments/agenda', [
+            'user' => $user,
+            'week' => $week,
+            'prev' => date('Y-m-d', strtotime($start . ' -7 days')),
+            'next' => date('Y-m-d', strtotime($start . ' +7 days')),
+            'current' => $start,
+            'stats' => $this->appointments->stats(),
+        ]);
+    }
+
     public function show(string $publicId): Response
     {
         $user = App::user();
@@ -88,11 +132,24 @@ final class AppointmentController extends Controller
         $method = ['confirm' => 'confirm', 'cancel' => 'cancel', 'complete' => 'complete'][$verb];
         $updated = $this->service->{$method}((int) $appointment['id'], $user);
 
+        $expectedStatus = ['confirm' => 'confirme', 'cancel' => 'annule', 'complete' => 'termine'][$verb];
         $label = ['confirm' => 'confirmé', 'cancel' => 'annulé', 'complete' => 'terminé'][$verb];
-        App::flash($updated !== null && $updated['status'] === ['confirm' => 'confirme', 'cancel' => 'annule', 'complete' => 'termine'][$verb] ? 'success' : 'error',
-            $updated !== null && $updated['status'] === ['confirm' => 'confirme', 'cancel' => 'annule', 'complete' => 'termine'][$verb]
-                ? sprintf('Rendez-vous %s.', $label)
-                : 'Impossible de modifier ce rendez-vous.');
+        $ok = $updated !== null && $updated['status'] === $expectedStatus;
+        $message = $ok ? sprintf('Rendez-vous %s.', $label) : 'Impossible de modifier ce rendez-vous.';
+
+        if ($this->request->wantsJson()) {
+            if (!$ok) {
+                return Response::error($message, 422);
+            }
+
+            return Response::json([
+                'message' => $message,
+                'redirect' => route('admin.appointments.agenda'),
+                'status' => $updated['status'],
+            ]);
+        }
+
+        App::flash($ok ? 'success' : 'error', $message);
 
         return Response::redirect(route('admin.appointments.show', ['publicId' => $publicId]));
     }

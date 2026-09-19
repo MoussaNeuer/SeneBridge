@@ -211,6 +211,29 @@ final class ProjectController extends Controller
         return Response::redirect(route('admin.projects.show', ['publicId' => $project['public_id']]));
     }
 
+    public function kanban(): Response
+    {
+        $user = App::user();
+        $boards = $this->projects->forKanban();
+
+        // Un conseiller ne voit que ses propres dossiers (moindre privilège).
+        if (Gate::isRole($user, 'counselor')) {
+            foreach ($boards as $status => &$items) {
+                $items = array_values(array_filter($items, static fn (array $p): bool => (int) $p['counselor_id'] === (int) $user['id']));
+            }
+            unset($items);
+        }
+
+        $stats = $this->projects->stats();
+
+        return Response::view('admin/projects/kanban', [
+            'user' => $user,
+            'boards' => $boards,
+            'stats' => $stats,
+            'statuses' => ['en_cours', 'bloque', 'termine'],
+        ]);
+    }
+
     public function status(string $publicId): Response
     {
         $user = App::user();
@@ -221,17 +244,35 @@ final class ProjectController extends Controller
         }
 
         $status = (string) $this->request->post('status', '');
+        $invalid = !in_array($status, ['en_cours', 'bloque', 'termine', 'archive'], true);
 
-        if (!in_array($status, ['en_cours', 'bloque', 'termine', 'archive'], true)) {
+        if ($invalid) {
+            if ($this->request->wantsJson()) {
+                return Response::error('Statut invalide.', 422);
+            }
+
             App::flash('error', 'Statut invalide.');
 
             return Response::redirectBack();
         }
 
         $this->service->updateStatus((int) $project['id'], $status, $user);
-        App::flash('success', sprintf('Statut du dossier %s mis à jour.', $project['reference']));
 
-        return Response::redirect(route('admin.projects.show', ['publicId' => $project['public_id']]));
+        $message = sprintf('Statut du dossier %s mis à jour.', $project['reference']);
+        $target = $this->request->post('from') === 'kanban'
+            ? route('admin.projects.kanban')
+            : route('admin.projects.show', ['publicId' => $project['public_id']]);
+
+        if ($this->request->wantsJson()) {
+            return Response::json([
+                'message' => $message,
+                'redirect' => $target,
+            ]);
+        }
+
+        App::flash('success', $message);
+
+        return Response::redirect($target);
     }
 
     public function counselor(string $publicId): Response

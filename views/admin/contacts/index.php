@@ -8,7 +8,7 @@ $this->section('content');
 <h1 class="text-2xl font-extrabold mb-6">Messages de contact</h1>
 
 <div class="bg-white rounded-2xl border border-brand/10 overflow-x-auto">
-    <table class="w-full text-sm min-w-[720px]">
+    <table class="w-full text-sm min-w-[720px]" data-table data-title="contacts">
         <thead class="text-left text-xs text-ink/50 uppercase border-b border-brand/10">
             <tr>
                 <th class="px-5 py-3">Expéditeur</th>

@@ -17,7 +17,7 @@ $this->section('content');
 
 <div class="grid gap-6 lg:grid-cols-3">
     <div class="lg:col-span-2 bg-white rounded-2xl border border-brand/10 overflow-x-auto">
-        <table class="w-full text-sm min-w-[640px]">
+        <table class="w-full text-sm min-w-[640px]" data-table data-title="conseillers">
             <thead class="text-left text-xs text-ink/50 uppercase border-b border-brand/10">
                 <tr>
                     <th class="px-5 py-3">Nom</th>
