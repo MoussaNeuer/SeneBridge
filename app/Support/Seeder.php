@@ -171,6 +171,7 @@ final class Seeder
                 'requests.view', 'requests.manage', 'contacts.view',
             ]),
             'counselor' => $this->ids($ids, [
+                'admin.access',
                 'projects.view', 'steps.view', 'steps.update',
                 'documents.view', 'documents.upload', 'documents.download',
                 'media.view', 'media.upload',
@@ -179,6 +180,7 @@ final class Seeder
                 'notifications.view',
             ]),
             'accounting' => $this->ids($ids, [
+                'admin.access',
                 'invoices.view',
                 'payments.view', 'payments.record', 'payments.validate',
             ]),
