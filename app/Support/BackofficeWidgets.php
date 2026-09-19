@@ -66,6 +66,7 @@ final class BackofficeWidgets
                 'items' => [
                     ['label' => 'Journal d\'audit', 'route' => 'admin.audit', 'permission' => 'audit.view'],
                     ['label' => 'Système', 'route' => 'admin.system', 'permission' => 'admin.access'],
+                    ['label' => 'Paramètres', 'route' => 'admin.settings', 'permission' => 'settings.manage'],
                 ],
             ],
         ];

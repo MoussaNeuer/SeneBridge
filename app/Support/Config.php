@@ -51,4 +51,31 @@ final class Config
 
         return $value;
     }
+
+    /**
+     * Écriture d'une valeur à chaud (utilisée par le hub Paramètres pour
+     * appliquer les réglages vivants sans redéploiement).
+     *
+     * @param mixed $value
+     */
+    public static function set(string $key, $value): void
+    {
+        $segments = explode('.', $key);
+        $target = &self::$items;
+
+        foreach ($segments as $segment) {
+            if (!is_array($target)) {
+                $target = [];
+            }
+
+            if (!isset($target[$segment]) || !is_array($target[$segment])) {
+                $target[$segment] = [];
+            }
+
+            $target = &$target[$segment];
+        }
+
+        $target = $value;
+        unset($target);
+    }
 }

@@ -33,6 +33,15 @@ final class App
         // 2. Configuration
         Config::load(config_path());
 
+        // 2bis. Réglages vivants (table settings) surchargent la configuration.
+        // Le service est autonome : si la table n'existe pas encore (première
+        // installation), il ne lève pas d'exception et on garde les défauts.
+        try {
+            \App\Services\SettingsService::applyToConfig();
+        } catch (\Throwable $e) {
+            Log::warning('Réglages non appliqués', ['error' => $e->getMessage()]);
+        }
+
         // 3. Fuseau horaire et locale
         date_default_timezone_set((string) config('app.timezone', 'Africa/Dakar'));
         mb_internal_encoding('UTF-8');

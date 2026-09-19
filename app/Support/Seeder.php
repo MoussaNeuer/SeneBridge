@@ -137,6 +137,8 @@ final class Seeder
         // Articles d'actualité (démo, idempotent par slug).
         $articlesCount = $this->ensureSampleArticles($admin);
 
+        $this->ensureDefaultSettings();
+
         return [
             'roles' => $rolesCount,
             'permissions' => $permissionsCount,
@@ -144,6 +146,63 @@ final class Seeder
             'admin' => $admin,
             'articles' => $articlesCount,
         ];
+    }
+
+    /**
+     * Réglages par défaut du hub (idempotent : insère uniquement les clés
+     * absentes, ne réécrase jamais une valeur déjà personnalisée).
+     *
+     * Les clés secrètes (mot de passe SMTP…) sont stockées chiffrées côté
+     * modèle ; ici on ne sème que des valeurs publiques ou vides.
+     *
+     * @return int Nombre de réglages réellement créés.
+     */
+    private function ensureDefaultSettings(): int
+    {
+        $defaults = [
+            // Identité
+            'site.name' => ['value' => 'SeneBridge', 'type' => 'string', 'section' => 'identite', 'label' => 'Nom du site'],
+            'site.tagline' => ['value' => 'Le pont entre la diaspora et le Sénégal', 'type' => 'string', 'section' => 'identite', 'label' => 'Slogan'],
+            'site.contact_email' => ['value' => 'contact@senebridge.sn', 'type' => 'email', 'section' => 'identite', 'label' => 'E-mail de contact'],
+            'site.contact_phone' => ['value' => '+221 33 820 00 00', 'type' => 'string', 'section' => 'identite', 'label' => 'Téléphone de contact'],
+            'site.address' => ['value' => 'Dakar, Plateau — Sénégal', 'type' => 'string', 'section' => 'identite', 'label' => 'Adresse'],
+
+            // Monnaie
+            'site.currency' => ['value' => 'FCFA', 'type' => 'string', 'section' => 'monnaie', 'label' => 'Monnaie (code)'],
+            'site.currency_symbol' => ['value' => 'F', 'type' => 'string', 'section' => 'monnaie', 'label' => 'Symbole monétaire'],
+
+            // Mail / expéditeur
+            'mail.from_name' => ['value' => 'SeneBridge', 'type' => 'string', 'section' => 'mail', 'label' => 'Nom de l\'expéditeur'],
+            'mail.from_address' => ['value' => 'no-reply@senebridge.sn', 'type' => 'email', 'section' => 'mail', 'label' => 'Adresse de l\'expéditeur'],
+            'mail.smtp_enabled' => ['value' => '', 'type' => 'bool', 'section' => 'mail', 'label' => 'SMTP actif'],
+
+            // Sécurité
+            'security.maintenance' => ['value' => '', 'type' => 'bool', 'section' => 'securite', 'label' => 'Maintenance'],
+            'security.open_registration' => ['value' => '1', 'type' => 'bool', 'section' => 'securite', 'label' => 'Inscriptions ouvertes'],
+
+            // Fonctionnalités
+            'app.maintenance' => ['value' => '', 'type' => 'bool', 'section' => 'general', 'label' => 'Maintenance de la plateforme'],
+        ];
+
+        $created = 0;
+
+        foreach ($defaults as $key => $config) {
+            if (Setting::findByKey($key) !== null) {
+                continue;
+            }
+
+            Setting::create([
+                'key' => $key,
+                'value' => (string) $config['value'],
+                'type' => (string) $config['type'],
+                'section' => (string) $config['section'],
+                'label' => (string) $config['label'],
+                'is_secret' => 0,
+            ]);
+            $created++;
+        }
+
+        return $created;
     }
 
     /**

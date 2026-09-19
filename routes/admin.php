@@ -18,6 +18,7 @@ use App\Controllers\Admin\ProjectController;
 use App\Controllers\Admin\PropertyController;
 use App\Controllers\Admin\RequestController;
 use App\Controllers\Admin\RoleController;
+use App\Controllers\Admin\SettingsController;
 use App\Controllers\Admin\SystemController;
 use App\Controllers\Admin\UtilityController;
 use App\Support\Router;
@@ -132,4 +133,8 @@ Router::group(['middleware' => ['auth', 'staff']], function () {
 
     // Informations système
     Router::get('/admin/systeme', [SystemController::class, 'index'], 'admin.system', ['permission:admin.access']);
+
+    // Paramètres de la plateforme
+    Router::get('/admin/parametres', [SettingsController::class, 'index'], 'admin.settings', ['permission:settings.manage']);
+    Router::post('/admin/parametres', [SettingsController::class, 'update'], 'admin.settings.update', ['permission:settings.manage', 'csrf']);
 });

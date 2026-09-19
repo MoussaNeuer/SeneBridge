@@ -53,6 +53,32 @@ function config(string $key, mixed $default = null): mixed
 }
 
 /**
+ * Lire un réglage vivant de la plateforme (table settings).
+ */
+function setting(string $key, mixed $default = null): mixed
+{
+    return \App\Services\SettingsService::get($key, $default);
+}
+
+/**
+ * Nom affiché du site (réglage vivant, repli sur la configuration).
+ */
+function site_name(): string
+{
+    $name = (string) setting('site.name', '');
+
+    return $name !== '' ? $name : (string) config('app.name', 'SeneBridge');
+}
+
+/**
+ * Symbole monétaire actif (réglage vivant, repli « F »).
+ */
+function currency_symbol(): string
+{
+    return (string) setting('site.currency_symbol', 'F');
+}
+
+/**
  * Chemins absolus du projet.
  */
 function base_path(string $path = ''): string
