@@ -6,6 +6,7 @@ namespace App\Support;
 
 use App\Models\Permission;
 use App\Models\Role;
+use App\Models\Setting;
 use App\Repositories\UserRepository;
 
 /**

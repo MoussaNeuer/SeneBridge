@@ -21,8 +21,8 @@ final class SettingsController extends Controller
     {
         return Response::view('admin/settings/index', [
             'user' => App::user(),
-            'sections' => SettingsService::rowsets(),
-            'groups' => SettingsService::rowsets(),
+            'sections' => SettingsService::grouped(),
+            'groups' => SettingsService::grouped(),
         ]);
     }
 

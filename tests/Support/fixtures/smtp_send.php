@@ -35,6 +35,22 @@ $_SERVER['argv'] ??= ['fixture'];
 require dirname(__DIR__, 3) . '/vendor/autoload.php';
 require dirname(__DIR__, 3) . '/tests/bootstrap.php';
 
+// Bloc 6 : applyToConfig() (bootstrap) peut basculer mail.default sur 'log'.
+// Ce sous-processus doit rester sur le driver SMTP local — on le force ici,
+// après bootstrap, avec les valeurs de la table "settings".
+use App\Support\Config;
+
+Config::set('mail.default', 'smtp');
+Config::set('mail.mailers.smtp.host', '127.0.0.1');
+Config::set('mail.mailers.smtp.port', (int) $port);
+Config::set('mail.mailers.smtp.username', 'user@fake.test');
+Config::set('mail.mailers.smtp.password', 'secret');
+Config::set('mail.mailers.smtp.auth', false);
+Config::set('mail.mailers.smtp.encryption', 'none');
+Config::set('mail.mailers.smtp.timeout', 30);
+Config::set('mail.from.address', 'no-reply@senebridge.sn');
+Config::set('mail.from.name', 'SeneBridge Test');
+
 $ok = \App\Support\Mailer::send(
     'dest@fake.test',
     'Test SMTP',
