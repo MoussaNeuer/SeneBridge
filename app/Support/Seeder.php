@@ -28,6 +28,8 @@ final class Seeder
         ['name' => 'users.view', 'label' => 'Voir les utilisateurs'],
         ['name' => 'users.manage', 'label' => 'Gérer les utilisateurs'],
         ['name' => 'users.assign_counselor', 'label' => 'Affecter un conseiller'],
+        ['name' => 'roles.view', 'label' => 'Voir les rôles et permissions'],
+        ['name' => 'roles.manage', 'label' => 'Gérer les rôles et permissions'],
         ['name' => 'projects.view', 'label' => 'Voir les projets'],
         ['name' => 'projects.create', 'label' => 'Créer les projets'],
         ['name' => 'projects.update', 'label' => 'Mettre à jour les projets'],

@@ -4,10 +4,13 @@ node_modules/
 .phpunit.cache/
 /storage/private/*
 /storage/logs/*
+/storage/backups/*
 /public/assets/*
 !/public/assets/.gitkeep
 !/public/assets/css/
 !/public/assets/css/*
+!/public/assets/js/
+!/public/assets/js/*
 !/storage/private/.gitkeep
 !/storage/private/documents/
 !/storage/private/documents/.gitkeep

@@ -1,6 +1,7 @@
 <?php
 use App\Support\App;
 use App\Support\CSRF;
+use App\Support\Gate;
 use App\Support\Router;
 $this->layout('layouts/admin');
 $this->section('title'); ?>Conseillers<?php $this->endSection();
@@ -36,13 +37,26 @@ $this->section('content');
                         </span>
                     </td>
                     <td class="px-5 py-3 text-right">
-                        <form method="POST" action="<?= e(Router::url('admin.counselors.status', ['publicId' => $counselor['public_id']])) ?>">
-                            <?= CSRF::field() ?>
-                            <input type="hidden" name="status" value="<?= $counselor['status'] === 'active' ? 'suspended' : 'active' ?>">
-                            <button type="submit" class="text-xs px-3 py-1.5 rounded-lg border border-brand/15 hover:bg-cream transition">
-                                <?= $counselor['status'] === 'active' ? 'Suspendre' : 'Réactiver' ?>
-                            </button>
-                        </form>
+                        <div class="inline-flex items-center gap-2">
+                            <?php if (Gate::allows('roles.manage') && (int) $counselor['id'] !== (int) $user['id']): ?>
+                            <form method="POST" action="<?= e(Router::url('admin.users.role', ['publicId' => $counselor['public_id']])) ?>" class="flex items-center gap-2">
+                                <?= CSRF::field() ?>
+                                <select name="role_id" class="text-xs px-2 py-1.5 rounded-lg border border-brand/15 bg-white">
+                                    <?php foreach ($roles as $role): ?>
+                                    <option value="<?= (int) $role['id'] ?>" <?= (int) $role['id'] === (int) $counselor['role_id'] ? 'selected' : '' ?>><?= e($role['name']) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <button type="submit" class="text-xs px-3 py-1.5 rounded-lg border border-brand/15 hover:bg-cream transition">Changer</button>
+                            </form>
+                            <?php endif; ?>
+                            <form method="POST" action="<?= e(Router::url('admin.counselors.status', ['publicId' => $counselor['public_id']])) ?>">
+                                <?= CSRF::field() ?>
+                                <input type="hidden" name="status" value="<?= $counselor['status'] === 'active' ? 'suspended' : 'active' ?>">
+                                <button type="submit" class="text-xs px-3 py-1.5 rounded-lg border border-brand/15 hover:bg-cream transition">
+                                    <?= $counselor['status'] === 'active' ? 'Suspendre' : 'Réactiver' ?>
+                                </button>
+                            </form>
+                        </div>
                     </td>
                 </tr>
                 <?php endforeach; ?>

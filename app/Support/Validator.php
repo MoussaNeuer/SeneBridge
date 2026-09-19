@@ -29,6 +29,10 @@ final class Validator
                 'last_name' => 'nom',
                 'phone' => 'numéro de téléphone',
                 'token' => 'jeton de sécurité',
+                'name' => 'nom du rôle',
+                'label' => 'libellé du rôle',
+                'description' => 'description',
+                'permissions' => 'permissions',
             ];
             $label = $labels[$field] ?? str_replace(['_', '-'], ' ', $field);
 
@@ -121,6 +125,12 @@ final class Validator
             case 'string':
                 if (!$this->isEmpty($value) && !is_string($value)) {
                     $this->errors[$field] = 'Le champ « ' . $label . ' » doit être une chaîne de caractères.';
+                }
+                break;
+
+            case 'array':
+                if (!$this->isEmpty($value) && !is_array($value)) {
+                    $this->errors[$field] = 'Le champ « ' . $label . ' » doit être une liste de valeurs.';
                 }
                 break;
 

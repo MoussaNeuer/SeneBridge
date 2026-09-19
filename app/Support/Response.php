@@ -200,16 +200,33 @@ final class Response
         if (!headers_sent()) {
             header('X-Content-Type-Options: nosniff');
             header('Referrer-Policy: strict-origin-when-cross-origin');
-            header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
+            header('Permissions-Policy: camera=(), microphone=(), geolocation=(), interest-cohort=(), browsing-topics=()');
+            header('Cross-Origin-Opener-Policy: same-origin');
+            header('Cross-Origin-Resource-Policy: same-origin');
+            header('X-Permitted-Cross-Domain-Policies: none');
 
             // HSTS : uniquement hors debug (un header strict sur localhost casserait le dev HTTP).
             if (!config('app.debug', false)) {
-                header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
+                header('Strict-Transport-Security: max-age=31536000; includeSubDomains; preload');
             }
 
             if ($this->type === self::TYPE_HTML) {
                 header('X-Frame-Options: DENY');
-                header("Content-Security-Policy: default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; script-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'; connect-src 'self'");
+
+                // CSP : 'unsafe-inline' restreint à style-src (barres de progression
+                // et emails administrés sont stylés inline). Dans les pages HTML de
+                // l'application il n'existe aucun <script> inline (JS chargé via src).
+                $csp = "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+                    . "font-src 'self' https://fonts.gstatic.com data:; script-src 'self'; object-src 'none'; "
+                    . "base-uri 'none'; frame-ancestors 'none'; form-action 'self'; connect-src 'self'";
+
+                // En production, on force le passage vers HTTPS des ressources mélangées.
+                if (!config('app.debug', false)) {
+                    $csp .= '; upgrade-insecure-requests';
+                }
+
+                header('Content-Security-Policy: ' . $csp);
+                header('X-Content-Security-Policy: ' . $csp);
             }
         }
     }

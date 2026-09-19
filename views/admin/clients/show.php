@@ -1,4 +1,6 @@
 <?php
+use App\Support\Gate;
+use App\Support\CSRF;
 use App\Support\Router;
 use App\Services\WorkflowService;
 $this->layout('layouts/admin');
@@ -24,6 +26,27 @@ $this->section('content');
            class="px-4 py-2 rounded-lg bg-brand text-brand-foreground text-sm font-semibold hover:bg-brand-dark transition">+ Ouvrir un dossier</a>
     </div>
 </div>
+
+<?php if (Gate::allows('roles.manage') && (int) $client['id'] !== (int) $user['id']): ?>
+<div class="bg-white rounded-2xl border border-brand/10 p-5 mt-6">
+    <h2 class="font-bold mb-3">Rôle et accès</h2>
+    <form method="POST" action="<?= e(Router::url('admin.users.role', ['publicId' => $client['public_id']])) ?>" class="flex flex-wrap items-end gap-3">
+        <?= CSRF::field() ?>
+        <div class="flex-1 min-w-[220px]">
+            <label for="role_select" class="text-sm font-medium block">Rôle actuel : <span class="font-semibold text-brand"><?= e(Gate::roleName($client) ?: '—') ?></span></label>
+            <select id="role_select" name="role_id" class="mt-1 w-full px-3 py-2 rounded-lg border border-brand/15">
+                <?php foreach ($roles as $role): ?>
+                <option value="<?= (int) $role['id'] ?>" <?= (int) $role['id'] === (int) $client['role_id'] ? 'selected' : '' ?>>
+                    <?= e($role['label']) ?> (<?= e($role['name']) ?>)
+                </option>
+                <?php endforeach; ?>
+            </select>
+            <p class="text-[11px] text-ink/50 mt-1">Changer le rôle agit sur les permissions du compte dès la prochaine requête.</p>
+        </div>
+        <button type="submit" class="px-4 py-2 rounded-lg bg-brand text-brand-foreground text-sm font-semibold hover:bg-brand-dark transition">Enregistrer</button>
+    </form>
+</div>
+<?php endif; ?>
 
 <div class="grid gap-6 lg:grid-cols-2 mt-6">
     <div class="bg-white rounded-2xl border border-brand/10 p-5">

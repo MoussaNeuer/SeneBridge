@@ -20,6 +20,7 @@ $nav = [
     ['label' => 'Demandes reçues', 'route' => 'admin.requests', 'permission' => 'requests.view'],
     ['label' => 'Clients', 'route' => 'admin.clients', 'permission' => 'users.view'],
     ['label' => 'Conseillers', 'route' => 'admin.counselors', 'permission' => 'users.assign_counselor'],
+    ['label' => 'Rôles & droits', 'route' => 'admin.roles', 'permission' => 'roles.view'],
     ['label' => 'Biens immobiliers', 'route' => 'admin.properties', 'permission' => 'properties.view'],
     ['label' => 'Factures', 'route' => 'admin.invoices', 'permission' => 'invoices.view'],
     ['label' => 'Paiements', 'route' => 'admin.payments', 'permission' => 'payments.view'],

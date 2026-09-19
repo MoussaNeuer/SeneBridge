@@ -1,4 +1,4 @@
-# SeneBridge — Blocs 1 à 4
+# SeneBridge — Blocs 1 à 5
 
 Plateforme de gestion de clients, biens et projets pour la diaspora sénégalaise.
 Le **Bloc 1** pose les fondations : base de code structurée, base de données
@@ -8,14 +8,17 @@ de projets/étapes. Le **Bloc 3** ajoute documents & médias par projet,
 factures & paiements, messagerie par projet et rendez-vous (demande client /
 confirmation conseiller). Le **Bloc 4** ajoute l'API REST `/api/v1` (tokens
 Bearer), le dashboard de pilotage financier du back-office et le durcissement
-de sécurité (sessions, API, en-têtes HTTP).
+de sécurité (sessions, API, en-têtes HTTP). Le **Bloc 5** finalise la
+préproduction : gestion des **rôles & permissions dans l'UI**, **SMTP** réel
+(PHPMailer), **HTTPS/CSP renforcé**, **sauvegardes** et **diagnostic** CLI,
+index de performance et enrichissement des tests/validations.
 
 ## Stack
 
 - PHP **8.4** (WAMP) — pas de framework : framework maison minimaliste (`app/`)
 - MySQL **8.4** (port 3306) — schéma 25 tables, FKs InnoDB, charset `utf8mb4`
 - Tailwind **v4** (`npm run build` → `public/assets/css/app.css`)
-- Composer : `monolog/monolog`, `symfony/uid` (ULID), `phpunit/phpunit`
+- Composer : `monolog/monolog`, `symfony/uid` (ULID), `phpmailer/phpmailer`, `phpunit/phpunit`
 
 ## Mise en route
 
@@ -48,8 +51,10 @@ php -S 127.0.0.1:8088 -t public devserver.php
 | `php public/index.php key:generate` | Génère `APP_KEY` |
 | `php public/index.php migrate` | Applique `database/migrations/*.sql` |
 | `php public/index.php migrate:status` | Liste des migrations appliquées |
-| `php public/index.php seed` | Rôles (5), permissions (36), affectations (87), admin |
+| `php public/index.php seed` | Rôles (5), permissions (38), affectations (89), admin |
 | `php public/index.php route:list` | Routes enregistrées |
+| `php public/index.php doctor` | Diagnostic (PHP, extensions, DB, config, limites upload) |
+| `php public/index.php backup` | Sauvegarde base + fichiers privés (rétention `BACKUP_KEEP`) |
 
 ## Architecture
 
@@ -62,7 +67,7 @@ app/
                       Notification, ProjectStep, ProjectDocument (API /api/v1)
   Controllers/Admin/  Dashboard, Projects, Clients, Counselors, Properties,
                       Requests, Contacts, Articles, Invoices, Payments,
-                      Messages, Appointments (portées RBAC)
+                      Messages, Appointments, Roles (portées RBAC)
   Middlewares/        Auth, Guest, Csrf, EmailVerified, Role, Permission,
                       AdminArea (garde du back-office /admin/*), Api (alias api)
   Models/             Model base + HasPublicId (ULID), User, Role, Permission,
@@ -71,20 +76,23 @@ app/
                       ApiToken, ...
   Policies/           ProjectPolicy, ClientPolicy, PropertyPolicy, ...
   Repositories/       UserRepository, ProjectRepository, ConversationRepository,
-                      InvoiceRepository, PaymentRepository, DocumentRepository, ...
+                      InvoiceRepository, PaymentRepository, DocumentRepository,
+                      RoleRepository (RBAC UI), ...
   Services/           AuthService, TokenService, ProjectService, WorkflowService,
                       DocumentService, InvoiceService, PaymentService,
                       AppointmentService, Notifier, AuditService, ApiTokenService
   Support/            App, Request, Response, Router, View, Validator, Config,
-                      Database, Hasher, CSRF, RateLimiter, Mailer, Audit, Log, Str
+                      Database, Hasher, CSRF, RateLimiter, Mailer, Audit, Log, Str,
+                      Console (doctor, backup), Migrator
   Validators/         AuthValidator, ProfileValidator, ProjectValidator,
                       DocumentValidator, InvoiceValidator, PaymentValidator,
                       MessageValidator, AppointmentValidator, ...
-config/               app, database, security, mail, storage, payment
+config/               app, database, security, mail, storage, payment, backup
 views/                layouts, public, auth, client, admin, errors, emails
+                      (+ admin/roles : index, create, edit, partials/permissions)
 routes/               web.php (public + auth) + admin.php (garde AdminArea) + api.php (/api/v1)
 database/             migrations/*.sql + schema.sql (référence)
-tests/                PHPUnit (41 tests) — validation via probes HTTP en plus
+tests/                PHPUnit (49 tests) — validation via probes HTTP en plus
 ```
 
 ## Décisions clés
@@ -109,10 +117,19 @@ tests/                PHPUnit (41 tests) — validation via probes HTTP en plus
   `docs/api.md` ; tous les endpoints passent le middleware `api`.
 - **Changement de mot de passe** : invalide les autres sessions (`session_version`)
   et révoque les tokens API existants.
-- **Headers de sécurité** : CSP (`default-src 'self'` + Google Fonts), nosniff,
-  `Referrer-Policy`, `Permissions-Policy`, `X-Frame-Options: DENY`, HSTS en production.
+- **Headers de sécurité** : CSP (`default-src 'self'` + Google Fonts, sans
+  `<script>` inline, `upgrade-insecure-requests` en production), nosniff,
+  `Referrer-Policy`, `Permissions-Policy`, `X-Frame-Options: DENY`, `COOP`,
+  `CORP`, `X-Permitted-Cross-Domain-Policies: none`, HSTS (`max-age` 1 an +
+  `preload`) en production.
 - **Sessions** : cookie HttpOnly + SameSite=Lax, `use_strict_mode=1`, regénération d'ID à la connexion.
-- **Emails** : driver `log` (fichier `storage/logs/mail.log`) ; SMTP prêt (Phase production).
+- **Emails** : driver `log` (local) ou `smtp` (PHPMailer, production). Le driver
+  SMTP refuse proprement (journal) si les identifiants sont absents ; testée
+  contre un serveur SMTP factice.
+- **Sauvegardes CLI** : `php public/index.php backup` → `mysqldump` (via
+  `MYSQLDUMP_BIN`, auto-détection WAMP) + copie des fichiers privés, rétention
+  `BACKUP_KEEP` (défaut 7). `doctor` vérifie PHP/extensions/DB/config (état
+  non-zero si erreur fatale).
 - **Pile de buffers** : `View::render` est consciente de `output_buffering=On` (WAMP).
 - **Zone back-office** : toutes les routes `/admin/*` passent par le middleware
   `AdminArea` (alias `staff`) qui refuse les rôles non-personnel (`client`) même
@@ -193,6 +210,35 @@ tests/                PHPUnit (41 tests) — validation via probes HTTP en plus
   `Router::reset()` rejouent l'état (caches utilisateur/requête/token, routes)
   à chaque requête (statiques PHP persistantes).
 
+## Bloc 5 — RBAC dans l'UI, SMTP, HTTPS/CSP, sauvegardes, performances
+
+- **Gestion des rôles & permissions (UI)** : page `/admin/roles` (index avec
+  nombre d'utilisateurs par rôle), création/édition avec grille de permissions
+  groupées par module et bouton « Tout cocher » (JS externe, aucun `<script>`
+  inline), suppression. Rôles système (`admin`, `manager`, `counselor`,
+  `accounting`, `client`) intouchables ; suppression refusée tant que des
+  utilisateurs sont affectés ; le dernier administrateur ne peut pas être
+  rétrogradé ; on ne change pas son propre rôle. Affectation d'un rôle à un
+  utilisateur depuis les fiches clients et la liste des conseillers
+  (`POST /admin/utilisateurs/{publicId}/role`, permission `roles.manage`).
+  Permissions seedées : `roles.view`, `roles.manage`.
+- **SMTP de production** : driver `smtp` réel via PHPMailer (hôte, port,
+  auth, TLS/SSL, timeout) configuré par `MAIL_*`. Envoi HTML + version
+  texte (`AltBody`), journalisation des échecs, refus propre si non configuré.
+- **HTTPS/CSP renforcé** : `upgrade-insecure-requests` en production, en-têtes
+  `Cross-Origin-Opener-Policy: same-origin`, `Cross-Origin-Resource-Policy:
+  same-origin`, `X-Permitted-Cross-Domain-Policies: none`, HSTS `preload`.
+  Détection HTTPS derrière un reverse-proxy : `APP_TRUST_PROXY=true` →
+  `Request::secure()` fie à `X-Forwarded-Proto` (jamais sinon, en-tête
+  contrôlable par le client).
+- **Sauvegardes & diagnostic CLI** : `backup` (dump MySQL + copie des fichiers
+  privés sous `storage/backups/`, rotation `BACKUP_KEEP`) et `doctor`
+  (extensions PHP requises, limites d'upload vs `UPLOAD_MAX_SIZE`, `APP_KEY`,
+  `APP_DEBUG`/proxy, répertoires inscriptibles, connexion MySQL).
+- **Performance** : migrations `0012`/`0013` — index composites sur les accès
+  chauds (`messages(conversation_id, is_read)`, `projects(client_id, status)`,
+  `conversations(client_id, status, updated_at)`, `audit_logs(user_id, created_at)`).
+
 ## Comptes de démonstration (dev uniquement)
 
 | Rôle | E-mail | Mot de passe |
@@ -214,7 +260,7 @@ tests/                PHPUnit (41 tests) — validation via probes HTTP en plus
   envoi → paiement → validation (200/302)
 - `npm run build` (Tailwind v4) OK
 
-## Chef de validation (Bloc 4)
+## Chefs de validation (Bloc 4)
 
 - `php vendor/bin/phpunit` : **41 tests / 126 assertions OK** (ApiTokenService,
   Request/bearer, Response JSON, durcissement)
@@ -229,9 +275,27 @@ tests/                PHPUnit (41 tests) — validation via probes HTTP en plus
   admin lit facture + paiements + documents projet. HSTS absent en mode debug
   (attendu)
 
+## Chef de validation (Bloc 5)
+
+- `php vendor/bin/phpunit` : **49 tests / 151 assertions OK** (Ajout
+  `RoleRepositoryTest` — RBAC en base réelle avec nettoyage — et `MailerTest`,
+  envoi SMTP réel vers un serveur SMTP factice en sous-processus ; navigation
+  `tests/RouterTest.php` corrigée pour la conformité PSR-4)
+- Lint : tous les fichiers `*.php` sans erreur (`php -l`)
+- `npm run build` (Tailwind v4) OK
+- Migrations : 13/13 appliquées (`migrate:status`), seed idempotent
+  (38 permissions / 89 affectations)
+- CLI : `backup` produit un dump non vide + copie des fichiers ; `doctor`
+  rend un diagnostic cohérent (1 avertissement attendu en dev : `APP_DEBUG`)
+- Probes HTTP sur serveur dev (`127.0.0.1:8088`) : login admin, page
+  `/admin/roles` (rôles présents), formulaire de création, affectation d'un
+  rôle (`client → manager`, vérifiée en base puis rejetée pour un rôle
+  invalide), client bloqué sur `/admin/roles` (302), en-têtes de sécurité
+  (CSP, COOP, CORP, X-Permitted), aucun `<script>` inline, HSTS absent en
+  mode debug (attendu)
+
 ## Suite (feuille de route)
 
-- Paiement en ligne (intégration Wave/Orange Money) et reçus PDF
-- Gestion des rôles/permissions dans l'UI (Phases 9+)
-- SMTP de production, HTTPS/CSP renforcé, sauvegardes
-- Limite d'upload dev : PHP WAMP (`upload_max_filesize` ≈ 2M) à augmenter en production
+- Intégrations avancées : SMS de notification, calendrier partagé, reçus PDF
+  des paiements (hors périmètre — pas de paiement en ligne)
+- Migration hébergement : déploiement documenté dans `docs/deploy.md`

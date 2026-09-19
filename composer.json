@@ -6,13 +6,14 @@
     "keywords": ["senebridge", "senegal", "gestion", "projets", "clients"],
     "require": {
         "php": "^8.2",
-        "ext-pdo": "*",
         "ext-json": "*",
         "ext-mbstring": "*",
         "ext-openssl": "*",
+        "ext-pdo": "*",
         "ext-sodium": "*",
-        "symfony/uid": "^6.4",
-        "monolog/monolog": "^3.5"
+        "monolog/monolog": "^3.5",
+        "phpmailer/phpmailer": "^6.9",
+        "symfony/uid": "^6.4"
     },
     "require-dev": {
         "phpunit/phpunit": "^10.5"

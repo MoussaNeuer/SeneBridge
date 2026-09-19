@@ -16,6 +16,7 @@ use App\Controllers\Admin\PaymentController;
 use App\Controllers\Admin\ProjectController;
 use App\Controllers\Admin\PropertyController;
 use App\Controllers\Admin\RequestController;
+use App\Controllers\Admin\RoleController;
 use App\Support\Router;
 
 // ---- Back-office (personnel : admin, manager, conseillers) ------------------
@@ -100,6 +101,17 @@ Router::group(['middleware' => ['auth', 'staff']], function () {
     // Messages de contact reçus
     Router::get('/admin/contacts', [ContactController::class, 'index'], 'admin.contacts', ['permission:contacts.view']);
     Router::get('/admin/contacts/{publicId:[A-Za-z0-9\-]+}', [ContactController::class, 'show'], 'admin.contacts.show', ['permission:contacts.view']);
+
+    // Réseau (rôles & permissions)
+    Router::get('/admin/roles', [RoleController::class, 'index'], 'admin.roles', ['permission:roles.view']);
+    Router::get('/admin/roles/nouveau', [RoleController::class, 'create'], 'admin.roles.create', ['permission:roles.manage']);
+    Router::post('/admin/roles', [RoleController::class, 'store'], 'admin.roles.store', ['permission:roles.manage', 'csrf']);
+    Router::get('/admin/roles/{publicId:[A-Za-z0-9\-]+}/modifier', [RoleController::class, 'edit'], 'admin.roles.edit', ['permission:roles.manage']);
+    Router::post('/admin/roles/{publicId:[A-Za-z0-9\-]+}/modifier', [RoleController::class, 'update'], 'admin.roles.update', ['permission:roles.manage', 'csrf']);
+    Router::post('/admin/roles/{publicId:[A-Za-z0-9\-]+}/supprimer', [RoleController::class, 'destroy'], 'admin.roles.destroy', ['permission:roles.manage', 'csrf']);
+
+    // Affectation d'un rôle à un utilisateur (fiche client, liste conseillers).
+    Router::post('/admin/utilisateurs/{publicId:[A-Za-z0-9\-]+}/role', [RoleController::class, 'assignRole'], 'admin.users.role', ['permission:roles.manage', 'csrf']);
 
     // Actualités
     Router::get('/admin/articles', [ArticleController::class, 'index'], 'admin.articles', ['permission:articles.manage']);

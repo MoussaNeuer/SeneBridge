@@ -85,9 +85,27 @@ final class Request
 
     public function url(): string
     {
-        $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+        return ($this->secure() ? 'https' : 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost') . $this->path;
+    }
 
-        return $scheme . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost') . $this->path;
+    /**
+     * Détecte une connexion chiffrée.
+     *
+     * En production derrière un reverse-proxy TLS, définir APP_TRUST_PROXY=true
+     * pour s'appuyer sur X-Forwarded-Proto (jamais recopié tel quel sinon :
+     * l'en-tête est contrôlable par le client).
+     */
+    public function secure(): bool
+    {
+        if ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (int) ($_SERVER['SERVER_PORT'] ?? 0) === 443) {
+            return true;
+        }
+
+        if (config('app.trust_proxy', false)) {
+            return strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https';
+        }
+
+        return false;
     }
 
     public function ip(): string

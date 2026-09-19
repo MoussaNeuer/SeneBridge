@@ -29,6 +29,7 @@ final class CounselorController extends Controller
         return Response::view('admin/counselors/index', [
             'user' => App::user(),
             'pagination' => $this->users->paginateByRole('counselor', 50),
+            'roles' => (new \App\Repositories\RoleRepository())->all(),
         ]);
     }
 

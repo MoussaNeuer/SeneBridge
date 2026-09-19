@@ -6,6 +6,7 @@ return [
     'name' => env('APP_NAME', 'SeneBridge'),
     'env' => env('APP_ENV', 'development'),
     'debug' => (bool) env('APP_DEBUG', true),
+    'trust_proxy' => (bool) env('APP_TRUST_PROXY', false),
     'url' => rtrim(env('APP_URL', 'http://localhost/SeneBridge/public'), '/'),
     'asset_url' => rtrim(env('ASSET_URL', env('APP_URL', 'http://localhost/SeneBridge/public')), '/'),
     'timezone' => env('APP_TIMEZONE', 'Africa/Dakar'),

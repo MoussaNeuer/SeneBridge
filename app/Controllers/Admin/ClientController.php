@@ -63,6 +63,7 @@ final class ClientController extends Controller
             'projects' => $projects,
             'progress' => $progress,
             'requests' => \App\Models\ProjectRequest::where(['email' => $user['email']], [['created_at', 'DESC']], 10),
+            'roles' => (new \App\Repositories\RoleRepository())->all(),
         ]);
     }
 }

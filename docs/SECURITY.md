@@ -1,7 +1,9 @@
 # Sécurité — SeneBridge
 
-Ce document décrit les mesures de sécurité activées/modifiées dans le Bloc 4
-(Phase 16 — durcissement). Il sert de référence pour l'audit et l'exploitation.
+Ce document décrit les mesures de sécurité activées/modifiées dans le
+Bloc 4 (Phase 16 — durcissement) et renforcées dans le Bloc 5 (RBAC dans
+l'UI, CSP/HTTPS, sauvegardes). Il sert de référence pour l'audit et
+l'exploitation.
 
 ## 1. Authentification et sessions
 
@@ -61,20 +63,63 @@ Appliqués par `Response::applySecurityHeaders()` sur toutes les réponses :
 | --- | --- |
 | `X-Content-Type-Options` | `nosniff` |
 | `Referrer-Policy` | `strict-origin-when-cross-origin` |
-| `Permissions-Policy` | `camera=(), microphone=(), geolocation=()` |
+| `Permissions-Policy` | `camera=(), microphone=(), geolocation=(), interest-cohort=(), browsing-topics=()` |
 | `X-Frame-Options` | `DENY` (HTML) |
+| `Cross-Origin-Opener-Policy` | `same-origin` |
+| `Cross-Origin-Resource-Policy` | `same-origin` |
+| `X-Permitted-Cross-Domain-Policies` | `none` |
 | `Content-Security-Policy` | règles strictes (HTML) — cf. `Response.php` |
-| `Strict-Transport-Security` | `max-age=31536000; includeSubDomains` — **uniquement hors debug** |
+| `Strict-Transport-Security` | `max-age=31536000; includeSubDomains; preload` — **uniquement hors debug** |
+
+Détails spécifiques au CSP :
+- `script-src 'self'` strict : **aucun `<script>` inline** dans les vues de
+  l'application (le JS « Tout cocher » des permissions vit dans
+  `public/assets/js/roles.js`).
+- `style-src 'self' 'unsafe-inline'` : `unsafe-inline` reste nécessaire aux
+  barres de progression stylées en attribut (graphes du dashboard) — accepté.
+- En production (`APP_DEBUG=false`) : directive `upgrade-insecure-requests`
+  ajoutée — toutes les ressources mixtes sont automatiquement requêtées en
+  HTTPS.
+
+## 4bis. Détection HTTPS et proxy
+
+`Request::secure()` accepte une connexion chiffrée via `HTTPS`/`SERVER_PORT`,
+ou — **uniquement si `APP_TRUST_PROXY=true`** — via `X-Forwarded-Proto`.
+L'en-tête étant contrôlable par le client, il n'est jamais pris en compte sans
+ce réglage explicite (reverse-proxy TLS en réseau de confiance).
+
+## 4ter. Gestion des rôles dans l'UI (Bloc 5)
+
+- Routes `/admin/roles*` gardées par les permissions `roles.view` (lecture) et
+  `roles.manage` (création/édition/suppression/affectation).
+- Les **rôles système** (admin, manager, counselor, accounting, client) sont
+  non modifiables supprimables via l'UI (`RoleRepository::isSystemRole`).
+- Il est impossible de **supprimer un rôle encore affecté**, de **rétrograder
+  le dernier administrateur** (`countAdmins()`), ou de **changer son propre
+  rôle** (anti-verrouillage).
+- Actions sensibles journalisées dans `audit_logs` : `roles.created`,
+  `roles.updated`, `roles.deleted`, `roles.assigned`.
+- Le changement de rôle d'un utilisateur est enregistré dans
+  `RoleController::assignRole` ; l'utilisateur concerné voit ses permissions
+  reflétées dès la requête suivante (perméabilité `Gate` ↔ session : les
+  permissions sont lues depuis la base à chaque requête).
 
 ## 5. Conseil d'exploitation pour la mise en production
 
-1. Passer `APP_ENV=production` et `APP_DEBUG=false` (active HSTS, masque les stack
-   traces). Rappel : ne jamais activer HSTS en HTTP pur sur le domaine.
+1. Passer `APP_ENV=production` et `APP_DEBUG=false` (active HSTS + `preload`,
+   `upgrade-insecure-requests`, masque les stack traces). Rappel : ne jamais
+   activer HSTS en HTTP pur sur le domaine.
 2. Renforcer `security.session.cookie_secure = true` (HTTPS).
-3. Chiffrer le trafic (TLS) côté serveur web.
+3. Chiffrer le trafic (TLS) côté serveur web ; `APP_TRUST_PROXY=true` derrière
+   un reverse-proxy TLS (cf. §4bis).
 4. Configurer une rotation longue des tokens (`API_TOKEN_TTL_DAYS`) selon la
    politique interne.
 5. Surveiller `audit_logs` pour `auth.login.too_many`, `api.auth.login_failed`,
-   `api_tokens.*`.
-6. Les secrets (`.env`) ne sont jamais commités (`.gitignore`). Vérifier
-   régulièrement.
+   `api_tokens.*`, `roles.assigned`.
+6. Limites d'upload : `upload_max_filesize`/`post_max_size` PHP doivent rester
+   ≥ `UPLOAD_MAX_SIZE` (contrôlé par `php public/index.php doctor`).
+7. Sauvegardes : `php public/index.php backup` (dump + fichiers privés,
+   rotation `BACKUP_KEEP`), sorties hors de la machine, si possible chiffrées.
+8. Les secrets (`.env`) ne sont jamais commités (`.gitignore`). Vérifier
+   régulièrement. SMTP : mot de passe uniquement dans `.env`, jamais dans les
+   commandes (`MYSQL_PWD` pour mysqldump).
