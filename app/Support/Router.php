@@ -26,6 +26,7 @@ final class Router
         'role' => \App\Middlewares\RoleMiddleware::class,
         'permission' => \App\Middlewares\PermissionMiddleware::class,
         'staff' => \App\Middlewares\AdminAreaMiddleware::class,
+        'api' => \App\Middlewares\ApiMiddleware::class,
     ];
 
     public static function get(string $path, mixed $action, ?string $name = null, array $middleware = []): void
@@ -53,6 +54,15 @@ final class Router
         self::add('ANY', $path, $action, $name, $middleware);
     }
 
+    /**
+     * Vide le registre des routes (appelé à chaque requête, notamment sous le
+     * serveur intégré PHP où les statiques persistent entre requêtes).
+     */
+    public static function reset(): void
+    {
+        self::$routes = [];
+    }
+
     public static function group(array $attributes, callable $routes): void
     {
         // Préfixe + middleware de groupe ajouté aux routes du callback.
@@ -64,7 +74,9 @@ final class Router
         $groupMiddleware = $attributes['middleware'] ?? [];
 
         foreach (self::$routes as $key => $route) {
-            $path = $prefix . $route['pattern'];
+            // Normalise la concaténation (le pattern '/project' + '/' doit donner '/project').
+            $path = rtrim($prefix . '/' . ltrim($route['pattern'], '/'), '/');
+            $path = $path !== '' ? $path : '/';
             $middleware = array_merge($groupMiddleware, $route['middleware']);
             self::$routes[$key] = [
                 ...$route,
@@ -148,6 +160,16 @@ final class Router
             self::runMiddleware($route['middleware'], $request);
 
             return self::callAction($route['action'], $params);
+        }
+
+        // 404 : version JSON pour l'API, page HTML sinon.
+        if (str_starts_with($path, '/api/')) {
+            return Response::json([
+                'success' => false,
+                'data' => null,
+                'message' => 'Ressource introuvable.',
+                'errors' => [],
+            ], 404);
         }
 
         return Response::notFound('La page demandée n\'existe pas.');

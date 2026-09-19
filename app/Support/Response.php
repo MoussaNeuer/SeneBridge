@@ -202,6 +202,11 @@ final class Response
             header('Referrer-Policy: strict-origin-when-cross-origin');
             header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
 
+            // HSTS : uniquement hors debug (un header strict sur localhost casserait le dev HTTP).
+            if (!config('app.debug', false)) {
+                header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
+            }
+
             if ($this->type === self::TYPE_HTML) {
                 header('X-Frame-Options: DENY');
                 header("Content-Security-Policy: default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; script-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'; connect-src 'self'");

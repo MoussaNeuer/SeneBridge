@@ -23,10 +23,16 @@ return [
         'header_name' => 'X-CSRF-Token',
         'token_length_bytes' => 32,
     ],
-    'rate_limit' => [
+'rate_limit' => [
         'login' => ['max_attempts' => 5, 'decay_minutes' => 15],
         'register' => ['max_attempts' => 10, 'decay_minutes' => 60],
         'password_reset_request' => ['max_attempts' => 5, 'decay_minutes' => 60],
+    ],
+    'api' => [
+        'token_prefix' => 'sbt_',
+        'token_ttl_days' => (int) env('API_TOKEN_TTL_DAYS', 30),
+        'login' => ['max_attempts' => 5, 'decay_minutes' => 15],
+        'general' => ['max_attempts' => 300, 'decay_minutes' => 15],
     ],
     'app_key_min_length' => 32,
 ];

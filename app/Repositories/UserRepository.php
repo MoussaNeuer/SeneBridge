@@ -74,7 +74,12 @@ final class UserRepository
 
     public function updatePassword(int $id, string $passwordHash): void
     {
-        User::update($id, ['password_hash' => $passwordHash]);
+        // session_version : incrémenté pour invalider les autres sessions
+        // (celle qui change le mot de passe resynchronise sa propre session).
+        Database::statement(
+            'UPDATE users SET password_hash = ?, session_version = session_version + 1 WHERE id = ?',
+            [$passwordHash, $id]
+        );
     }
 
     public function updateProfile(int $id, array $data): void

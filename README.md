@@ -1,4 +1,4 @@
-# SeneBridge — Blocs 1, 2 & 3
+# SeneBridge — Blocs 1 à 4
 
 Plateforme de gestion de clients, biens et projets pour la diaspora sénégalaise.
 Le **Bloc 1** pose les fondations : base de code structurée, base de données
@@ -6,7 +6,9 @@ complète et authentification robuste. Le **Bloc 2** ajoute le site public
 (fonctionnel), l'espace client et le back-office complet avec RBAC et suivi
 de projets/étapes. Le **Bloc 3** ajoute documents & médias par projet,
 factures & paiements, messagerie par projet et rendez-vous (demande client /
-confirmation conseiller).
+confirmation conseiller). Le **Bloc 4** ajoute l'API REST `/api/v1` (tokens
+Bearer), le dashboard de pilotage financier du back-office et le durcissement
+de sécurité (sessions, API, en-têtes HTTP).
 
 ## Stack
 
@@ -56,20 +58,23 @@ app/
   Controllers/Web/    Home, Auth, Dashboard, Profile, Projects, Notifications,
                       ClientProjects, ClientInvoices, ClientMessages,
                       ClientAppointments, Start, Contact, ...
+  Controllers/Api/    Auth, Project, Invoice, Payment, Appointment, Message,
+                      Notification, ProjectStep, ProjectDocument (API /api/v1)
   Controllers/Admin/  Dashboard, Projects, Clients, Counselors, Properties,
                       Requests, Contacts, Articles, Invoices, Payments,
                       Messages, Appointments (portées RBAC)
   Middlewares/        Auth, Guest, Csrf, EmailVerified, Role, Permission,
-                      AdminArea (garde du back-office /admin/*)
+                      AdminArea (garde du back-office /admin/*), Api (alias api)
   Models/             Model base + HasPublicId (ULID), User, Role, Permission,
                       Project, ProjectStep, Document, Media, Invoice, Payment,
-                      Conversation, ConversationMessage, Appointment, Article, ...
+                      Conversation, ConversationMessage, Appointment, Article,
+                      ApiToken, ...
   Policies/           ProjectPolicy, ClientPolicy, PropertyPolicy, ...
   Repositories/       UserRepository, ProjectRepository, ConversationRepository,
                       InvoiceRepository, PaymentRepository, DocumentRepository, ...
   Services/           AuthService, TokenService, ProjectService, WorkflowService,
                       DocumentService, InvoiceService, PaymentService,
-                      AppointmentService, Notifier, AuditService
+                      AppointmentService, Notifier, AuditService, ApiTokenService
   Support/            App, Request, Response, Router, View, Validator, Config,
                       Database, Hasher, CSRF, RateLimiter, Mailer, Audit, Log, Str
   Validators/         AuthValidator, ProfileValidator, ProjectValidator,
@@ -77,9 +82,9 @@ app/
                       MessageValidator, AppointmentValidator, ...
 config/               app, database, security, mail, storage, payment
 views/                layouts, public, auth, client, admin, errors, emails
-routes/               web.php (public + auth) + admin.php (back-office, garde AdminArea)
+routes/               web.php (public + auth) + admin.php (garde AdminArea) + api.php (/api/v1)
 database/             migrations/*.sql + schema.sql (référence)
-tests/                PHPUnit (31 tests) — validation via probes HTTP en plus
+tests/                PHPUnit (41 tests) — validation via probes HTTP en plus
 ```
 
 ## Décisions clés
@@ -93,8 +98,19 @@ tests/                PHPUnit (31 tests) — validation via probes HTTP en plus
   stocké en base (`rate_limits`), clés en `login:<email>`.
 - **Tokens temporaires** : seul le hash SHA-256 est stocké ; usage unique, expiration.
 - **Anti-énumération** : réponse identique que le compte existe ou non sur le password reset.
+- **Headless REST API `/api/v1`** : authentification par **tokens Bearer**
+  (`sbt_...`, seul le hash SHA-256 est stocké, TTL 30 j réglable dans
+  `config/security.php`), rate limiting par IP et par compte (login
+  5/15 min, global 300/15 min → 429 + `Retry-After`), limites de propriété
+  anti-IDOR (dossier/facture d'un autre client → 404), pagination standard,
+  erreurs JSON cohérentes. `POST /api/v1/auth/login`, `GET /me`,
+  `projects`, `invoices`, `payments`, `appointments`, `messages`,
+  `notifications` (+ `project steps/documents`). Contrats détaillés dans
+  `docs/api.md` ; tous les endpoints passent le middleware `api`.
+- **Changement de mot de passe** : invalide les autres sessions (`session_version`)
+  et révoque les tokens API existants.
 - **Headers de sécurité** : CSP (`default-src 'self'` + Google Fonts), nosniff,
-  `Referrer-Policy`, `Permissions-Policy`, `X-Frame-Options: DENY`.
+  `Referrer-Policy`, `Permissions-Policy`, `X-Frame-Options: DENY`, HSTS en production.
 - **Sessions** : cookie HttpOnly + SameSite=Lax, `use_strict_mode=1`, regénération d'ID à la connexion.
 - **Emails** : driver `log` (fichier `storage/logs/mail.log`) ; SMTP prêt (Phase production).
 - **Pile de buffers** : `View::render` est consciente de `output_buffering=On` (WAMP).
@@ -157,6 +173,26 @@ tests/                PHPUnit (31 tests) — validation via probes HTTP en plus
 - **Tableau de bord back-office** : 2e rangée de stats (factures à recouvrer,
   paiements à valider, RV à confirmer, conversations non lues).
 
+## Bloc 4 — API REST, dashboard financier, durcissement
+
+- **API REST `/api/v1`** : token Bearer (`sbt_...`), TTL 30 jours, hash SHA-256
+  stocké, révocation à la déconnexion, rate limiting login + global, alias
+  `api` middleware et groupe de routes. Endpoints : auth (login/logout/me),
+  projets (liste/détail + étapes + documents clients), factures (avec statuts
+  de paiement), paiements, rendez-vous (création/annulation), messagerie,
+  notifications. Erreurs JSON (401/403/404/422/429/500), pagination.
+  Documentation : `docs/api.md`.
+- **Dashboard back-office** : rangée de pilotage financier — CA total encaissé,
+  encours à recouvrer, taux de recouvrement, revenu mensuel CA (ventes) vs
+  encaissé (paiements validés) sur 12 mois (graphique barres), répartition des
+  dossiers par statut (barres horizontales), derniers paiements validés, RV à venir.
+- **Durcissement** : invalidation de session au changement de mot de passe et
+  révocation des tokens API ; en-têtes HTTP renforcés (HSTS hors debug) ;
+  exceptions du noyau servies en JSON sur `/api/*` ; `docs/SECURITY.md`.
+- **État par requête sous serveur intégré** : `App::resetRequestState()` +
+  `Router::reset()` rejouent l'état (caches utilisateur/requête/token, routes)
+  à chaque requête (statiques PHP persistantes).
+
 ## Comptes de démonstration (dev uniquement)
 
 | Rôle | E-mail | Mot de passe |
@@ -177,6 +213,21 @@ tests/                PHPUnit (31 tests) — validation via probes HTTP en plus
   client bloqué sur `/admin/*` (302), flux complet back-office facture →
   envoi → paiement → validation (200/302)
 - `npm run build` (Tailwind v4) OK
+
+## Chef de validation (Bloc 4)
+
+- `php vendor/bin/phpunit` : **41 tests / 126 assertions OK** (ApiTokenService,
+  Request/bearer, Response JSON, durcissement)
+- Lint : tous les fichiers `*.php` sans erreur (`php -l`)
+- `npm run build` (Tailwind v4) OK
+- Probes HTTP sur serveur dev (`127.0.0.1:8088`) : en-têtes sécurité, dashboard
+  admin (marqueurs financiers), **API complète** — login 200 → token, `/me`
+  (rôle `client`), CRUD lecture (projets/factures/notifications/étapes/docs),
+  401 sans/avec mauvais token, 404 JSON route inconnue, login mauvais mot de
+  passe 401, création rendez-vous, messages index/envoi, **anti-IDOR** (dossier
+  et facture d'un autre client → 404), pagination factures (`last_page ≥ 1`),
+  admin lit facture + paiements + documents projet. HSTS absent en mode debug
+  (attendu)
 
 ## Suite (feuille de route)
 

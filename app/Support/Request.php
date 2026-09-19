@@ -22,15 +22,15 @@ final class Request
         $this->method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
         $this->path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?? '/';
         $this->query = $_GET;
-        $this->body = $this->parseBody();
         $this->headers = $this->parseHeaders();
+        $this->body = $this->parseBody();
         $this->cookies = $_COOKIE;
         $this->files = $_FILES;
     }
 
     private function parseBody(): array
     {
-        if ($this->method === 'POST' && $this->isJson()) {
+        if (in_array($this->method, ['POST', 'PUT', 'PATCH', 'DELETE'], true) && $this->isJson()) {
             $raw = file_get_contents('php://input');
             $decoded = $raw !== false ? json_decode($raw, true) : null;
 
@@ -173,6 +173,20 @@ final class Request
     public function header(string $name): ?string
     {
         return $this->headers[$name] ?? null;
+    }
+
+    /**
+     * Jeton Bearer si présent dans l'en-tête Authorization.
+     */
+    public function bearerToken(): ?string
+    {
+        $header = (string) $this->header('Authorization');
+
+        if (preg_match('/^Bearer\s+([A-Za-z0-9\-._~+\/=]+)$/', trim($header), $m) === 1) {
+            return $m[1];
+        }
+
+        return null;
     }
 
     public function cookie(string $name, $default = null): mixed

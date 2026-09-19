@@ -15,6 +15,10 @@ final class App
 {
     /** @var array<string, mixed>|null Cache de l'utilisateur courant. */
     private static ?array $cachedUser = null;
+    private static ?Request $cachedRequest = null;
+
+    /** Identifiant du token API utilisé pour la requête courante. */
+    private static ?int $apiTokenId = null;
     private static bool $booted = false;
 
     public static function bootstrap(): void
@@ -74,13 +78,37 @@ final class App
 
     public static function request(): Request
     {
-        static $request = null;
-
-        if ($request === null) {
-            $request = new Request();
+        if (self::$cachedRequest === null) {
+            self::$cachedRequest = new Request();
         }
 
-        return $request;
+        return self::$cachedRequest;
+    }
+
+    /**
+     * Réinitialise l'état par requête (cache utilisateur, requête, token API,
+     * routes). Indispensable sous le serveur intégré PHP où les statiques
+     * persistent entre requêtes.
+     */
+    public static function resetRequestState(): void
+    {
+        self::$cachedUser = null;
+        self::$cachedRequest = null;
+        self::$apiTokenId = null;
+        Router::reset();
+    }
+
+    /**
+     * Mémorise le token API qui authentifie la requête courante.
+     */
+    public static function setApiTokenId(int $tokenId): void
+    {
+        self::$apiTokenId = $tokenId;
+    }
+
+    public static function apiTokenId(): ?int
+    {
+        return self::$apiTokenId;
     }
 
     public static function isCli(): bool
@@ -114,6 +142,17 @@ final class App
             return null;
         }
 
+        // Version de session : si elle a changé (mot de passe modifié ailleurs /
+        // actions admin), la session courante est invalidée.
+        $storedVersion = (int) self::getSession('auth.session_version', 0);
+        $currentVersion = (int) ($user['session_version'] ?? 0);
+
+        if ($storedVersion !== $currentVersion) {
+            self::flushAuth();
+
+            return null;
+        }
+
         self::$cachedUser = $user;
 
         return $user;
@@ -131,7 +170,17 @@ final class App
         self::$cachedUser = $user;
         self::setSession('auth.user_id', (int) $user['id']);
         self::setSession('auth.login_at', date('Y-m-d H:i:s'));
+        self::setSession('auth.session_version', (int) ($user['session_version'] ?? 0));
         session_regenerate_id(true);
+    }
+
+    /**
+     * Injecte l'utilisateur pour la requête courante sans toucher à la session
+     * (utilisé par l'API Bearer Token).
+     */
+    public static function withApiUser(array $user): void
+    {
+        self::$cachedUser = $user;
     }
 
     public static function flushAuth(): void
@@ -241,6 +290,17 @@ final class App
                 'line' => $e->getLine(),
                 'trace' => $e->getTraceAsString(),
             ]);
+
+            $isApi = str_starts_with((string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH), '/api/');
+
+            if ($isApi) {
+                Response::json([
+                    'success' => false,
+                    'message' => 'Erreur interne du serveur.',
+                ], 500)->send();
+
+                return;
+            }
 
             if (config('app.debug', false)) {
                 Response::view('errors/error', [

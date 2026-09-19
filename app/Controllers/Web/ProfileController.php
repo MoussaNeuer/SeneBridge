@@ -6,6 +6,7 @@ namespace App\Controllers\Web;
 
 use App\Controllers\Controller;
 use App\Repositories\UserRepository;
+use App\Services\ApiTokenService;
 use App\Support\App;
 use App\Support\Audit;
 use App\Support\Hasher;
@@ -77,6 +78,13 @@ final class ProfileController extends Controller
         }
 
         $this->users->updatePassword((int) $user['id'], Hasher::make((string) $data['password']));
+
+        // La session courante reste valide ; les autres sessions et tokens API
+        // sont invalidés (session_version incrémentée + révocation).
+        $fresh = $this->users->findById((int) $user['id']);
+        App::setSession('auth.session_version', (int) ($fresh['session_version'] ?? 0));
+        (new ApiTokenService())->revokeForUser((int) $user['id']);
+
         Audit::log('profile.password_changed', 'users', (int) $user['id'], [], ['user_id' => (int) $user['id']]);
 
         App::flash('success', 'Votre mot de passe a été modifié.');

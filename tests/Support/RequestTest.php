@@ -38,4 +38,37 @@ final class RequestTest extends TestCase
 
         $this->assertSame('/', $request->path());
     }
+
+    public function testBearerTokenParsedFromAuthorizationHeader(): void
+    {
+        $_SERVER['REQUEST_URI'] = '/';
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+        $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer sbt_0123456789abcdef';
+
+        $request = new Request();
+
+        $this->assertSame('sbt_0123456789abcdef', $request->bearerToken());
+    }
+
+    public function testBearerTokenNullWithoutHeader(): void
+    {
+        $_SERVER['REQUEST_URI'] = '/';
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+        unset($_SERVER['HTTP_AUTHORIZATION']);
+
+        $request = new Request();
+
+        $this->assertNull($request->bearerToken());
+    }
+
+    public function testBearerTokenRejectsMalformedHeader(): void
+    {
+        $_SERVER['REQUEST_URI'] = '/';
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+        $_SERVER['HTTP_AUTHORIZATION'] = 'Basic Zm9vOmJhcg==';
+
+        $request = new Request();
+
+        $this->assertNull($request->bearerToken());
+    }
 }

@@ -13,10 +13,14 @@ abstract class Controller
     protected Request $request;
     protected AuthService $auth;
 
+    /** @var array<string, mixed> Utilisateur courant (session web ou Bearer API). */
+    protected array $authUser = [];
+
     public function __construct()
     {
         $this->request = App::request();
         $this->auth = new AuthService();
+        $this->authUser = App::user() ?? $this->authUser;
     }
 
     /**
